@@ -1,0 +1,1488 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>IBM + Confluent — Technical Reference</title>
+<style>
+:root {
+  --bg: #0a0e14; --bg-elev: #141a23; --bg-code: #0f141c; --bg-card: #161d28;
+  --border: #232c3a; --border-soft: #1b2230;
+  --fg: #e8eef6; --fg-muted: #8b97a8; --fg-dim: #6b7688;
+  --accent: #58a6ff; --accent-soft: rgba(88,166,255,0.12);
+  --accent-2: #3fb950;
+  --warn-bg: rgba(187,128,9,0.12); --warn-border: #bb8009; --warn-fg: #e3b341;
+  --note-bg: rgba(31,111,235,0.10); --note-border: #1f6feb;
+  --kafka: #4d9fff; --lake: #4ec46b; --ai: #c79bff; --gov: #e87bb0;
+  --shadow: 0 1px 2px rgba(0,0,0,0.4), 0 4px 16px rgba(0,0,0,0.25);
+  --shadow-lg: 0 8px 32px rgba(0,0,0,0.45);
+  --radius: 12px; --radius-sm: 8px;
+  --grad: linear-gradient(120deg, #58a6ff 0%, #c79bff 60%, #e87bb0 100%);
+  --mono: ui-monospace,"SF Mono",SFMono-Regular,Menlo,Consolas,"Liberation Mono",monospace;
+  --sans: -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+}
+[data-theme="light"] {
+  --bg: #fbfcfe; --bg-elev: #ffffff; --bg-code: #f4f6fa; --bg-card: #ffffff;
+  --border: #e2e7ef; --border-soft: #eef1f6;
+  --fg: #131720; --fg-muted: #5a6678; --fg-dim: #8b95a6;
+  --accent: #0969da; --accent-soft: rgba(9,105,218,0.08);
+  --accent-2: #1a7f37;
+  --warn-bg: #fff8e6; --warn-border: #d4a72c; --warn-fg: #8a5a00;
+  --note-bg: #eef6ff; --note-border: #54aeff;
+  --kafka: #1f6feb; --lake: #1a7f37; --ai: #8957e5; --gov: #c2407e;
+  --shadow: 0 1px 2px rgba(16,24,40,0.05), 0 4px 16px rgba(16,24,40,0.06);
+  --shadow-lg: 0 8px 32px rgba(16,24,40,0.10);
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0; background: var(--bg); color: var(--fg);
+  font-family: var(--sans); font-size: 16px; line-height: 1.65;
+  -webkit-font-smoothing: antialiased; text-rendering: optimizeLegibility;
+}
+body::selection, ::selection { background: var(--accent-soft); }
+::-webkit-scrollbar { width: 11px; height: 11px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border); border-radius: 6px; border: 3px solid var(--bg); }
+::-webkit-scrollbar-thumb:hover { background: var(--fg-dim); }
+
+/* Top bar */
+header.topbar {
+  position: sticky; top: 0; z-index: 100;
+  background: color-mix(in srgb, var(--bg-elev) 80%, transparent);
+  backdrop-filter: saturate(160%) blur(14px); -webkit-backdrop-filter: saturate(160%) blur(14px);
+  border-bottom: 1px solid var(--border-soft);
+  display: flex; align-items: center; gap: 1.5rem;
+  padding: 0 1.5rem; height: 60px;
+}
+.brand { display: flex; align-items: center; gap: 0.6rem; font-weight: 700; font-size: 1.02rem; letter-spacing: -0.02em; white-space: nowrap; }
+.brand .dot { width: 10px; height: 10px; border-radius: 50%; background: var(--grad); box-shadow: 0 0 12px var(--accent); flex: none; }
+.brand .sep { color: var(--fg-dim); margin: 0 0.15rem; font-weight: 400; }
+nav.mainnav { display: flex; gap: 0.2rem; flex: 1; flex-wrap: wrap; }
+nav.mainnav a {
+  position: relative; color: var(--fg-muted); text-decoration: none; font-size: 0.9rem; font-weight: 500;
+  padding: 0.45rem 0.85rem; border-radius: 999px; white-space: nowrap;
+  transition: color .18s, background .18s;
+}
+nav.mainnav a:hover { background: var(--bg-card); color: var(--fg); }
+nav.mainnav a.active { color: #fff; background: var(--accent); font-weight: 600; box-shadow: 0 2px 10px var(--accent-soft); }
+[data-theme="light"] nav.mainnav a.active { color: #fff; }
+.theme-toggle {
+  background: var(--bg-card); border: 1px solid var(--border); color: var(--fg);
+  border-radius: 999px; padding: 0.45rem 0.9rem; cursor: pointer; font-size: 0.82rem; font-weight: 500;
+  transition: border-color .18s, transform .1s;
+}
+.theme-toggle:hover { border-color: var(--accent); }
+.theme-toggle:active { transform: scale(0.96); }
+
+main { max-width: 1000px; margin: 0 auto; padding: 2.5rem 1.5rem 6rem; }
+.page { display: none; }
+.page.active { display: block; animation: fade .35s cubic-bezier(.2,.7,.2,1); }
+@keyframes fade { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+
+/* Page header */
+.pagehead { margin-bottom: 2rem; padding-bottom: 1.5rem; border-bottom: 1px solid var(--border-soft); }
+.pagehead .eyebrow {
+  display: inline-flex; align-items: center; gap: 0.5rem;
+  color: var(--accent); font-size: 0.74rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em;
+}
+.pagehead .eyebrow::before { content: ""; width: 22px; height: 2px; border-radius: 2px; background: var(--grad); }
+h1 {
+  font-size: 2.35rem; line-height: 1.12; margin: 0.7rem 0 0.8rem; letter-spacing: -0.035em; font-weight: 800;
+  background: var(--grad); -webkit-background-clip: text; background-clip: text; color: transparent; width: fit-content;
+}
+h2 { font-size: 1.5rem; margin: 2.6rem 0 0.9rem; letter-spacing: -0.02em; font-weight: 700; }
+h3 { font-size: 1.12rem; margin: 1.7rem 0 0.5rem; color: var(--fg); font-weight: 650; }
+.abstract { font-size: 1.12rem; line-height: 1.6; color: var(--fg-muted); margin-bottom: 0; max-width: 70ch; }
+p { margin: 0.8rem 0; max-width: 74ch; }
+a { color: var(--accent); text-decoration-color: color-mix(in srgb, var(--accent) 40%, transparent); text-underline-offset: 2px; }
+a:hover { text-decoration-color: var(--accent); }
+ul, ol { padding-left: 1.4rem; max-width: 74ch; }
+li { margin: 0.4rem 0; }
+b { color: var(--fg); font-weight: 650; }
+
+code {
+  font-family: var(--mono); font-size: 0.85em;
+  background: var(--accent-soft); color: var(--fg); padding: 0.12em 0.42em; border-radius: 5px;
+}
+
+/* Code blocks with attached header */
+.pre-label {
+  display: flex; align-items: center; gap: 0.5rem;
+  font-family: var(--mono); font-size: 0.7rem; color: var(--fg-muted);
+  text-transform: uppercase; letter-spacing: 0.07em; font-weight: 600;
+  background: var(--bg-card); border: 1px solid var(--border); border-bottom: none;
+  border-radius: var(--radius-sm) var(--radius-sm) 0 0;
+  padding: 0.55rem 0.95rem; margin: 1.3rem 0 0;
+}
+.pre-label::before { content: ""; width: 9px; height: 9px; border-radius: 50%; background: var(--accent-2); box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent-2) 22%, transparent); flex: none; }
+.pre-label + pre { margin-top: 0; border-top-left-radius: 0; border-top-right-radius: 0; }
+pre {
+  background: var(--bg-code); border: 1px solid var(--border); border-radius: var(--radius-sm);
+  padding: 1.1rem 1.2rem; overflow-x: auto; margin: 1.1rem 0; box-shadow: var(--shadow);
+}
+pre code { background: none; color: var(--fg); padding: 0; font-size: 0.82rem; line-height: 1.65; }
+
+/* Figures */
+figure { margin: 1.8rem 0; }
+figure svg { width: 100%; height: auto; display: block;
+  background: var(--bg-elev); border: 1px solid var(--border); border-radius: var(--radius); padding: 0.75rem;
+  box-shadow: var(--shadow-lg); }
+figcaption { font-size: 0.86rem; line-height: 1.5; color: var(--fg-muted); margin: 0.9rem auto 0; text-align: center; max-width: 66ch; }
+figcaption b { color: var(--fg); }
+
+/* Callouts */
+.callout {
+  position: relative; border-radius: var(--radius-sm); padding: 1rem 1.2rem 1rem 1.3rem; margin: 1.5rem 0;
+  border: 1px solid; font-size: 0.96rem; line-height: 1.6;
+}
+.callout::before { content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 4px; border-radius: var(--radius-sm) 0 0 var(--radius-sm); }
+.callout.warn { background: var(--warn-bg); border-color: color-mix(in srgb, var(--warn-border) 45%, transparent); }
+.callout.warn::before { background: var(--warn-border); }
+.callout.warn .ct { color: var(--warn-fg); }
+.callout.note { background: var(--note-bg); border-color: color-mix(in srgb, var(--note-border) 40%, transparent); }
+.callout.note::before { background: var(--note-border); }
+.callout.note .ct { color: var(--accent); }
+.callout .ct { display: flex; align-items: center; gap: 0.45rem; margin-bottom: 0.5rem; font-size: 0.76rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; }
+.callout.warn .ct::before { content: "!"; display: inline-grid; place-items: center; width: 16px; height: 16px; border-radius: 50%; background: var(--warn-border); color: #1a1205; font-size: 0.7rem; font-weight: 800; }
+.callout.note .ct::before { content: "i"; font-family: Georgia, serif; font-style: italic; display: inline-grid; place-items: center; width: 16px; height: 16px; border-radius: 50%; background: var(--note-border); color: #fff; font-size: 0.72rem; font-weight: 700; }
+.callout ul { margin: 0.5rem 0 0; }
+.callout p:first-of-type, .callout > :last-child { margin-bottom: 0; }
+
+/* Tables */
+.table-wrap { margin: 1.2rem 0; border: 1px solid var(--border); border-radius: var(--radius-sm); overflow: hidden; box-shadow: var(--shadow); }
+table { border-collapse: collapse; width: 100%; font-size: 0.9rem; }
+.table-wrap table { margin: 0; }
+th, td { padding: 0.7rem 0.9rem; text-align: left; vertical-align: top; border-bottom: 1px solid var(--border-soft); }
+th { background: var(--bg-card); font-weight: 650; font-size: 0.82rem; text-transform: uppercase; letter-spacing: 0.03em; color: var(--fg-muted); border-bottom: 1px solid var(--border); }
+tbody tr { transition: background .12s; }
+tbody tr:hover td { background: var(--accent-soft); }
+tr:last-child td { border-bottom: none; }
+/* bare tables (not yet wrapped) keep a usable look */
+table:not(.table-wrap table) { border: 1px solid var(--border); border-radius: var(--radius-sm); overflow: hidden; }
+
+/* Cards */
+.grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin: 1.2rem 0; }
+@media (max-width: 680px) { .grid2 { grid-template-columns: 1fr; } }
+.card {
+  background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius); padding: 1.1rem 1.2rem;
+  transition: transform .16s cubic-bezier(.2,.7,.2,1), border-color .16s, box-shadow .16s;
+}
+.card:hover { transform: translateY(-3px); border-color: color-mix(in srgb, var(--accent) 50%, var(--border)); box-shadow: var(--shadow-lg); }
+.card h4 { margin: 0 0 0.4rem; font-size: 1rem; font-weight: 650; }
+.card p { margin: 0.3rem 0 0; font-size: 0.9rem; color: var(--fg-muted); max-width: none; }
+
+/* References */
+.refs { margin-top: 3.5rem; padding-top: 1.5rem; border-top: 1px solid var(--border-soft); }
+.refs h2 { font-size: 0.78rem; margin: 0 0 0.8rem; text-transform: uppercase; letter-spacing: 0.1em; color: var(--fg-muted); }
+.refs ol { font-size: 0.84rem; color: var(--fg-muted); max-width: none; }
+.refs li { margin: 0.45rem 0; word-break: break-word; line-height: 1.5; }
+.refs a { color: var(--accent); }
+
+.tag { display: inline-block; font-family: var(--mono); font-size: 0.7rem; padding: 0.12rem 0.5rem;
+  border-radius: 999px; border: 1px solid var(--border); background: var(--bg-card); color: var(--fg-muted); margin-right: 0.3rem; }
+.svg-bg { fill: var(--bg-elev); }
+text { font-family: var(--sans); }
+
+/* Use cases */
+.uc-intro { color: var(--fg-muted); max-width: 74ch; }
+.usecase {
+  background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius);
+  padding: 1.5rem 1.6rem; margin: 1.6rem 0; box-shadow: var(--shadow);
+}
+.usecase > h3:first-child { margin-top: 0; display: flex; align-items: center; gap: 0.65rem; font-size: 1.18rem; }
+.uc-num {
+  font-family: var(--mono); font-size: 0.74rem; font-weight: 700; color: #fff;
+  background: var(--grad); border-radius: 999px; padding: 0.2rem 0.65rem; flex: none; letter-spacing: 0.02em;
+}
+.usecase figure svg { background: var(--bg-code); }
+.usecase .pre-label { background: var(--bg-elev); }
+.uc-tags { margin: 0.2rem 0 0.6rem; }
+.uc-details { margin-top: 0.6rem; padding: 0.9rem 1.1rem; background: var(--bg-code); border: 1px solid var(--border-soft); border-radius: var(--radius-sm); font-size: 0.9rem; }
+.uc-details .lbl { display: block; font-size: 0.72rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: var(--fg-muted); margin-bottom: 0.4rem; }
+.uc-details ul { margin: 0; max-width: none; }
+.uc-details li { margin: 0.3rem 0; }
+.outcome { display: flex; flex-wrap: wrap; gap: 0.7rem; margin: 1rem 0 0; }
+.metric { flex: 1 1 140px; background: var(--bg-elev); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 0.7rem 0.9rem; }
+.metric .v { display: block; font-size: 1.25rem; font-weight: 800; color: var(--accent-2); letter-spacing: -0.02em; line-height: 1.15; }
+.metric .l { font-size: 0.74rem; color: var(--fg-muted); line-height: 1.3; }
+@media (max-width: 560px) { h1 { font-size: 1.85rem; } main { padding: 1.75rem 1.1rem 4rem; } header.topbar { gap: 0.75rem; padding: 0 1rem; } }
+</style>
+</head>
+<body>
+<header class="topbar">
+  <span class="brand"><span class="dot"></span>IBM <span class="sep">+</span> Confluent</span>
+  <nav class="mainnav" id="nav">
+    <a href="#overview" data-route="overview">Overview</a>
+    <a href="#watsonxdata" data-route="watsonxdata">watsonx.data</a>
+    <a href="#integration" data-route="integration">IBM Integration</a>
+    <a href="#ibmz" data-route="ibmz">IBM Z</a>
+  </nav>
+  <button class="theme-toggle" id="themeBtn" aria-label="Toggle theme">◐ Theme</button>
+</header>
+<main>
+  <section class="page" id="page-overview">
+    <div class="pagehead">
+      <div class="eyebrow">Home / Overview</div>
+      <h1>The IBM + Confluent Technical Relationship</h1>
+      <p class="abstract">IBM completed its acquisition of Confluent on 17 March 2026. The two
+      stacks are <b>additive, not competing</b>: Confluent supplies the real-time streaming substrate
+      (Kafka + Flink); IBM watsonx supplies the open lakehouse, model serving, and agent orchestration
+      that consume those streams. This page establishes the three-layer reference architecture, the
+      open standards that bind the layers, and a decision rule for routing a workload to the right layer.</p>
+    </div>
+
+    <p>For an SE already fluent in Kafka and Flink, the mental model is straightforward: Confluent is
+    the <b>central nervous system for real-time data</b> — IBM's own product documentation uses exactly
+    that phrase. Events are produced once into Kafka and consumed many times: by stream processors
+    (Flink/ksqlDB) for sub-minute reactions, by the lakehouse (watsonx.data via Tableflow → Iceberg)
+    for at-rest analytics and AI training, and by agents (watsonx Orchestrate via MCP) for multi-step
+    reasoning and action. Governance (watsonx.governance) and lineage span all three.</p>
+
+    <h2>The three-layer reference architecture</h2>
+    <figure>
+      <svg viewBox="0 0 900 470" role="img" aria-label="Three-layer IBM + Confluent stack">
+        <rect class="svg-bg" x="0" y="0" width="900" height="470" rx="8"/>
+        <!-- Governance spanning bar -->
+        <rect x="30" y="30" width="760" height="44" rx="6" fill="none" stroke="var(--gov)" stroke-width="2" stroke-dasharray="6 4"/>
+        <text x="410" y="58" text-anchor="middle" fill="var(--gov)" font-size="15" font-weight="700">watsonx.governance + watsonx.data intelligence (Manta lineage) — spans all layers</text>
+        <!-- Vertical governance brackets -->
+        <line x1="820" y1="52" x2="820" y2="430" stroke="var(--gov)" stroke-width="2" stroke-dasharray="6 4"/>
+        <text x="838" y="245" text-anchor="middle" fill="var(--gov)" font-size="12" transform="rotate(90 838 245)">policy · lineage · audit</text>
+
+        <!-- Layer 1: Confluent -->
+        <rect x="30" y="100" width="760" height="96" rx="8" fill="none" stroke="var(--kafka)" stroke-width="2"/>
+        <text x="50" y="126" fill="var(--kafka)" font-size="15" font-weight="700">Layer 1 — Confluent: the real-time nervous system</text>
+        <rect x="50" y="138" width="200" height="44" rx="6" fill="var(--bg-code)" stroke="var(--kafka)"/>
+        <text x="150" y="165" text-anchor="middle" fill="var(--fg)" font-size="13">Apache Kafka (topics)</text>
+        <rect x="270" y="138" width="200" height="44" rx="6" fill="var(--bg-code)" stroke="var(--kafka)"/>
+        <text x="370" y="165" text-anchor="middle" fill="var(--fg)" font-size="13">Apache Flink / ksqlDB</text>
+        <rect x="490" y="138" width="280" height="44" rx="6" fill="var(--bg-code)" stroke="var(--kafka)"/>
+        <text x="630" y="158" text-anchor="middle" fill="var(--fg)" font-size="12">Schema Registry · Connect</text>
+        <text x="630" y="174" text-anchor="middle" fill="var(--fg-muted)" font-size="11">Tableflow · Cluster Linking</text>
+
+        <!-- arrows down -->
+        <line x1="410" y1="196" x2="410" y2="232" stroke="var(--fg-muted)" stroke-width="2" marker-end="url(#arr)"/>
+        <text x="425" y="218" fill="var(--fg-muted)" font-size="11">Tableflow → Iceberg</text>
+
+        <!-- Layer 2: watsonx.data -->
+        <rect x="30" y="236" width="760" height="86" rx="8" fill="none" stroke="var(--lake)" stroke-width="2"/>
+        <text x="50" y="262" fill="var(--lake)" font-size="15" font-weight="700">Layer 2 — watsonx.data: open lakehouse</text>
+        <rect x="50" y="274" width="220" height="38" rx="6" fill="var(--bg-code)" stroke="var(--lake)"/>
+        <text x="160" y="298" text-anchor="middle" fill="var(--fg)" font-size="12">Iceberg + Parquet tables</text>
+        <rect x="290" y="274" width="220" height="38" rx="6" fill="var(--bg-code)" stroke="var(--lake)"/>
+        <text x="400" y="298" text-anchor="middle" fill="var(--fg)" font-size="12">Presto (C++/Velox) · Spark</text>
+        <rect x="530" y="274" width="240" height="38" rx="6" fill="var(--bg-code)" stroke="var(--lake)"/>
+        <text x="650" y="298" text-anchor="middle" fill="var(--fg)" font-size="12">Milvus vector store (RAG)</text>
+
+        <line x1="410" y1="322" x2="410" y2="358" stroke="var(--fg-muted)" stroke-width="2" marker-end="url(#arr)"/>
+
+        <!-- Layer 3: watsonx.ai + Orchestrate -->
+        <rect x="30" y="362" width="760" height="86" rx="8" fill="none" stroke="var(--ai)" stroke-width="2"/>
+        <text x="50" y="388" fill="var(--ai)" font-size="15" font-weight="700">Layer 3 — watsonx.ai + watsonx Orchestrate: reason &amp; act</text>
+        <rect x="50" y="400" width="340" height="38" rx="6" fill="var(--bg-code)" stroke="var(--ai)"/>
+        <text x="220" y="424" text-anchor="middle" fill="var(--fg)" font-size="12">watsonx.ai — model training / inference</text>
+        <rect x="410" y="400" width="360" height="38" rx="6" fill="var(--bg-code)" stroke="var(--ai)"/>
+        <text x="590" y="424" text-anchor="middle" fill="var(--fg)" font-size="12">watsonx Orchestrate — agents via MCP</text>
+        <defs>
+          <marker id="arr" markerWidth="10" markerHeight="10" refX="8" refY="5" orient="auto">
+            <path d="M0,0 L10,5 L0,10 z" fill="var(--fg-muted)"/>
+          </marker>
+        </defs>
+      </svg>
+      <figcaption><b>Figure 1.</b> The three-layer reference architecture. Confluent streams feed the
+      watsonx.data lakehouse (via Tableflow → Iceberg) and watsonx Orchestrate agents (via MCP);
+      watsonx.governance and Manta lineage span every layer.</figcaption>
+    </figure>
+
+    <h2>Decision rule: which layer handles the workload?</h2>
+    <p>The single most useful heuristic when an SE is whiteboarding with a customer:</p>
+    <div class="table-wrap"><table>
+      <thead><tr><th>Workload shape</th><th>Layer / product</th><th>Why</th></tr></thead>
+      <tbody>
+        <tr><td>Sub-minute reaction to events; stateful stream joins/aggregations</td><td>Confluent — Flink / ksqlDB</td><td>Lowest latency; processes data in motion before it lands anywhere</td></tr>
+        <tr><td>Historical / at-rest analytics; AI training datasets; ad-hoc SQL</td><td>watsonx.data — Presto / Spark over Iceberg</td><td>Columnar, partitioned, queryable by many engines; cheap object storage</td></tr>
+        <tr><td>Multi-step workflow with human-in-the-loop; tool-calling agents</td><td>watsonx Orchestrate</td><td>Agent supervision, delegation, approvals — not a stream-processing job</td></tr>
+        <tr><td>Semantic retrieval / RAG over enterprise documents</td><td>watsonx.data — Milvus</td><td>Vector similarity is a lakehouse-resident capability, fed by streams</td></tr>
+      </tbody>
+    </table></div>
+
+    <h2>Open standards are the integration contract</h2>
+    <p>Every seam between the layers is an open standard, which is what makes the architecture
+    composable rather than a set of proprietary bridges:</p>
+    <div class="grid2">
+      <div class="card"><h4>Apache Kafka</h4><p>The event log and wire protocol. Every producer/consumer in the stack speaks it.</p></div>
+      <div class="card"><h4>Apache Flink</h4><p>Stream processing — both Confluent's managed Flink and IBM Event Processing's low-code UI compile to it.</p></div>
+      <div class="card"><h4>Apache Iceberg + Parquet</h4><p>Open table + file format. Tableflow materializes topics as Iceberg; watsonx.data reads them with zero copy.</p></div>
+      <div class="card"><h4>Iceberg REST Catalog</h4><p>The catalog protocol Tableflow exposes and Presto/Spark consume — no proprietary metastore lock-in.</p></div>
+      <div class="card"><h4>Presto</h4><p>Distributed SQL engine; watsonx.data ships a C++/Velox build for federated queries across Iceberg.</p></div>
+      <div class="card"><h4>MCP (Model Context Protocol)</h4><p>The tool-calling contract between Orchestrate agents and data services like ksqlDB-derived APIs.</p></div>
+    </div>
+
+    <div class="callout note">
+      <span class="ct">Design consideration</span>
+      The acquisition does not collapse the products into one runtime. Confluent Cloud, Confluent
+      Platform, and the watsonx family remain separate deployables with their own lifecycles. Integration
+      happens at the <b>standards boundary</b> (Kafka protocol, Iceberg REST catalog, MCP), so an SE
+      should architect each seam as a contract — version the schema, pin the catalog URI, and treat the
+      agent's MCP tools as a stable API surface.
+    </div>
+
+    <h2>End-to-end pattern: stream → lakehouse → agent</h2>
+    <p>A canonical agentic flow that touches all three layers, used later as the worked example on the
+    Integration page: Kafka topics (<code>inventory.transactions</code>, <code>inventory.availability</code>)
+    are aggregated by ksqlDB, exposed as an MCP tool <code>get_sku_availability(sku, branch)</code>, and
+    consumed by a watsonx Orchestrate supervisor agent that delegates to specialist agents and performs
+    agentic RAG over enterprise documents held in watsonx.data Milvus.</p>
+
+    <h2>Real-world use cases</h2>
+    <p class="uc-intro">Three flagship patterns that span all three layers. Each is the reference shape an
+    SE should reach for first; the per-use-case diagrams below name the concrete products and topics so
+    they can be lifted directly onto a customer whiteboard.</p>
+
+    <div class="usecase">
+      <h3><span class="uc-num">UC 1</span> Event-driven agentic AI assistant</h3>
+      <div class="uc-tags"><span class="tag">Confluent Cloud</span><span class="tag">ksqlDB</span><span class="tag">MCP</span><span class="tag">watsonx Orchestrate</span></div>
+      <p class="uc-scenario">A retail store-associate assistant answers live stock questions during
+      high-demand periods where availability shifts minute-by-minute across branches ("Do you have the
+      Dell XPS 15 in Mall of Egypt — and if not, what's the alternative?"). It fuses live Kafka inventory
+      state with agentic RAG over a product catalog. This is the canonical IBM Developer tutorial and the
+      single best end-to-end demo of the stack. <sup>[4][5]</sup></p>
+      <figure>
+        <svg viewBox="0 0 900 470" role="img" aria-label="Agentic AI assistant data flow">
+          <defs><marker id="ucA" markerWidth="10" markerHeight="10" refX="8" refY="5" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="var(--fg-muted)"/></marker></defs>
+          <!-- streaming row -->
+          <rect x="24" y="44" width="150" height="52" rx="6" fill="var(--bg-elev)" stroke="var(--accent-2)" stroke-width="2"/>
+          <text x="99" y="68" text-anchor="middle" fill="var(--fg)" font-size="12">POS / inventory</text>
+          <text x="99" y="84" text-anchor="middle" fill="var(--fg-muted)" font-size="11">systems</text>
+          <rect x="206" y="44" width="172" height="52" rx="6" fill="var(--bg-elev)" stroke="var(--kafka)" stroke-width="2"/>
+          <text x="292" y="68" text-anchor="middle" fill="var(--fg)" font-size="12">Kafka topic</text>
+          <text x="292" y="84" text-anchor="middle" fill="var(--fg-muted)" font-size="11">inventory.transactions</text>
+          <rect x="410" y="44" width="140" height="52" rx="6" fill="var(--bg-elev)" stroke="var(--kafka)" stroke-width="2"/>
+          <text x="480" y="68" text-anchor="middle" fill="var(--fg)" font-size="12">ksqlDB</text>
+          <text x="480" y="84" text-anchor="middle" fill="var(--fg-muted)" font-size="11">SUM(qty) TABLE</text>
+          <rect x="582" y="44" width="180" height="52" rx="6" fill="var(--bg-elev)" stroke="var(--kafka)" stroke-width="2"/>
+          <text x="672" y="68" text-anchor="middle" fill="var(--fg)" font-size="12">Kafka topic</text>
+          <text x="672" y="84" text-anchor="middle" fill="var(--fg-muted)" font-size="11">inventory.availability</text>
+          <line x1="174" y1="70" x2="202" y2="70" stroke="var(--fg-muted)" stroke-width="2" marker-end="url(#ucA)"/>
+          <line x1="378" y1="70" x2="406" y2="70" stroke="var(--fg-muted)" stroke-width="2" marker-end="url(#ucA)"/>
+          <line x1="550" y1="70" x2="578" y2="70" stroke="var(--fg-muted)" stroke-width="2" marker-end="url(#ucA)"/>
+          <!-- MCP tool -->
+          <rect x="582" y="156" width="180" height="54" rx="6" fill="var(--bg-elev)" stroke="var(--accent)" stroke-width="2"/>
+          <text x="672" y="180" text-anchor="middle" fill="var(--fg)" font-size="12" font-weight="600">MCP tool</text>
+          <text x="672" y="198" text-anchor="middle" fill="var(--fg-muted)" font-size="11">get_sku_availability()</text>
+          <line x1="672" y1="96" x2="672" y2="154" stroke="var(--fg-muted)" stroke-width="2" marker-end="url(#ucA)"/>
+          <!-- agents -->
+          <rect x="24" y="272" width="216" height="76" rx="6" fill="var(--bg-elev)" stroke="var(--ai)" stroke-width="2.5"/>
+          <text x="132" y="298" text-anchor="middle" fill="var(--fg)" font-size="12" font-weight="700">watsonx Orchestrate</text>
+          <text x="132" y="316" text-anchor="middle" fill="var(--fg)" font-size="12">Store_Associate_Agent</text>
+          <text x="132" y="334" text-anchor="middle" fill="var(--fg-muted)" font-size="11">supervisor</text>
+          <rect x="300" y="262" width="244" height="46" rx="6" fill="var(--bg-elev)" stroke="var(--ai)" stroke-width="2"/>
+          <text x="422" y="290" text-anchor="middle" fill="var(--fg)" font-size="12">SKU_Availability_Agent</text>
+          <rect x="300" y="326" width="244" height="46" rx="6" fill="var(--bg-elev)" stroke="var(--ai)" stroke-width="2"/>
+          <text x="422" y="354" text-anchor="middle" fill="var(--fg)" font-size="12">Substitute_Finder_Agent</text>
+          <rect x="586" y="320" width="190" height="58" rx="6" fill="var(--bg-elev)" stroke="var(--lake)" stroke-width="2"/>
+          <text x="681" y="344" text-anchor="middle" fill="var(--fg)" font-size="12">watsonx.data Milvus</text>
+          <text x="681" y="362" text-anchor="middle" fill="var(--fg-muted)" font-size="11">agentic RAG (catalog)</text>
+          <rect x="24" y="392" width="216" height="46" rx="6" fill="var(--bg-elev)" stroke="var(--accent-2)" stroke-width="2"/>
+          <text x="132" y="420" text-anchor="middle" fill="var(--fg)" font-size="12">Answer → associate UI</text>
+          <line x1="240" y1="298" x2="296" y2="285" stroke="var(--fg-muted)" stroke-width="2" marker-end="url(#ucA)"/>
+          <line x1="240" y1="322" x2="296" y2="349" stroke="var(--fg-muted)" stroke-width="2" marker-end="url(#ucA)"/>
+          <line x1="544" y1="280" x2="600" y2="212" stroke="var(--fg-muted)" stroke-width="2" marker-end="url(#ucA)"/>
+          <line x1="544" y1="349" x2="582" y2="349" stroke="var(--fg-muted)" stroke-width="2" marker-end="url(#ucA)"/>
+          <line x1="132" y1="348" x2="132" y2="390" stroke="var(--fg-muted)" stroke-width="2" marker-end="url(#ucA)"/>
+        </svg>
+        <figcaption><b>Figure 2.</b> Live transactions are aggregated by ksqlDB into a per-SKU/branch
+        availability table, exposed as an MCP tool. The Orchestrate supervisor delegates to a lookup
+        agent (calls the tool) and a substitute agent (RAG over Milvus), then returns one answer.</figcaption>
+      </figure>
+      <div class="uc-details">
+        <span class="lbl">Key technical details</span>
+        <ul>
+          <li>ksqlDB runs a continuous push query (<code>EMIT CHANGES</code>); the tutorial uses a single
+          partition to keep ordering deterministic — in production, key by <code>sku</code>+<code>branch</code> and register schemas in Schema Registry.</li>
+          <li>MCP (Model Context Protocol) decouples the tool from the agent, so <code>get_sku_availability()</code>
+          is reusable across agents and LLMs. Imported via <code>orchestrate toolkits add --kind mcp</code>.</li>
+          <li>Documented extension path: swap/augment ksqlDB with <b>Apache Flink</b> for windowed trends,
+          anomaly detection, and enrichment. Reasoning model in the tutorial: <code>llama-3-2-90b-vision-instruct</code>.</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="usecase">
+      <h3><span class="uc-num">UC 2</span> Enterprise-wide real-time fraud detection</h3>
+      <div class="uc-tags"><span class="tag">Kafka</span><span class="tag">Flink</span><span class="tag">exactly-once</span><span class="tag">watsonx.data</span></div>
+      <p class="uc-scenario">A bank or payments processor must detect and block fraud as it happens rather
+      than in nightly batch, correlating card, login, device, and account-activity signals into one
+      "fusion center." Multiple teams subscribe to the same scored stream without duplicating it.
+      Confluent's published proof points include Bank Rakyat Indonesia (real-time credit scoring → 2-minute
+      loan disbursement) and Capital One's event-centric fraud architecture. <sup>[8]</sup></p>
+      <figure>
+        <svg viewBox="0 0 900 410" role="img" aria-label="Real-time fraud detection fusion center">
+          <defs><marker id="ucB" markerWidth="10" markerHeight="10" refX="8" refY="5" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="var(--fg-muted)"/></marker></defs>
+          <!-- sources -->
+          <rect x="20" y="40" width="180" height="38" rx="5" fill="var(--bg-elev)" stroke="var(--accent-2)" stroke-width="2"/><text x="110" y="64" text-anchor="middle" fill="var(--fg)" font-size="11">card / payment events</text>
+          <rect x="20" y="88" width="180" height="38" rx="5" fill="var(--bg-elev)" stroke="var(--accent-2)" stroke-width="2"/><text x="110" y="112" text-anchor="middle" fill="var(--fg)" font-size="11">auth / login events</text>
+          <rect x="20" y="136" width="180" height="38" rx="5" fill="var(--bg-elev)" stroke="var(--accent-2)" stroke-width="2"/><text x="110" y="160" text-anchor="middle" fill="var(--fg)" font-size="11">device telemetry</text>
+          <rect x="20" y="184" width="180" height="38" rx="5" fill="var(--bg-elev)" stroke="var(--accent-2)" stroke-width="2"/><text x="110" y="203" text-anchor="middle" fill="var(--fg)" font-size="11">Db2 z/OS (Data Gate)</text>
+          <!-- kafka -->
+          <rect x="248" y="40" width="120" height="182" rx="6" fill="var(--bg-elev)" stroke="var(--kafka)" stroke-width="2.5"/><text x="308" y="128" text-anchor="middle" fill="var(--kafka)" font-size="13" font-weight="700">Kafka</text><text x="308" y="146" text-anchor="middle" fill="var(--fg-muted)" font-size="11">topics</text>
+          <!-- enrichment topic -->
+          <rect x="410" y="40" width="180" height="42" rx="6" fill="var(--bg-elev)" stroke="var(--gov)" stroke-width="2"/><text x="500" y="60" text-anchor="middle" fill="var(--fg)" font-size="11">reference / enrichment</text><text x="500" y="74" text-anchor="middle" fill="var(--fg-muted)" font-size="10">merchant-risk topics</text>
+          <!-- flink -->
+          <rect x="410" y="100" width="180" height="118" rx="6" fill="var(--bg-elev)" stroke="var(--kafka)" stroke-width="2"/><text x="500" y="132" text-anchor="middle" fill="var(--fg)" font-size="12" font-weight="600">Apache Flink</text><text x="500" y="152" text-anchor="middle" fill="var(--fg-muted)" font-size="11">stateful joins +</text><text x="500" y="168" text-anchor="middle" fill="var(--fg-muted)" font-size="11">velocity windows</text><text x="500" y="184" text-anchor="middle" fill="var(--fg-muted)" font-size="11">+ ML scoring</text>
+          <!-- alert topic -->
+          <rect x="640" y="70" width="180" height="44" rx="6" fill="var(--bg-elev)" stroke="var(--kafka)" stroke-width="2"/><text x="730" y="90" text-anchor="middle" fill="var(--fg)" font-size="11">fraud-score / alert</text><text x="730" y="104" text-anchor="middle" fill="var(--fg-muted)" font-size="10">topic</text>
+          <!-- block service -->
+          <rect x="640" y="140" width="180" height="44" rx="6" fill="var(--bg-elev)" stroke="var(--accent-2)" stroke-width="2"/><text x="730" y="160" text-anchor="middle" fill="var(--fg)" font-size="11">decline / OTP step-up</text><text x="730" y="174" text-anchor="middle" fill="var(--fg-muted)" font-size="10">+ notify</text>
+          <!-- dashboard -->
+          <rect x="640" y="210" width="180" height="44" rx="6" fill="var(--bg-elev)" stroke="var(--accent-2)" stroke-width="2"/><text x="730" y="230" text-anchor="middle" fill="var(--fg)" font-size="11">fraud ops dashboard</text><text x="730" y="244" text-anchor="middle" fill="var(--fg-muted)" font-size="10">case management</text>
+          <!-- lakehouse -->
+          <rect x="410" y="290" width="180" height="56" rx="6" fill="var(--bg-elev)" stroke="var(--lake)" stroke-width="2"/><text x="500" y="314" text-anchor="middle" fill="var(--fg)" font-size="12">watsonx.data (Iceberg)</text><text x="500" y="332" text-anchor="middle" fill="var(--fg-muted)" font-size="11">retrain + investigate</text>
+          <!-- arrows -->
+          <line x1="200" y1="59" x2="246" y2="80" stroke="var(--fg-muted)" stroke-width="1.7" marker-end="url(#ucB)"/>
+          <line x1="200" y1="107" x2="246" y2="110" stroke="var(--fg-muted)" stroke-width="1.7" marker-end="url(#ucB)"/>
+          <line x1="200" y1="155" x2="246" y2="140" stroke="var(--fg-muted)" stroke-width="1.7" marker-end="url(#ucB)"/>
+          <line x1="200" y1="203" x2="246" y2="175" stroke="var(--fg-muted)" stroke-width="1.7" marker-end="url(#ucB)"/>
+          <line x1="368" y1="140" x2="406" y2="150" stroke="var(--fg-muted)" stroke-width="2" marker-end="url(#ucB)"/>
+          <line x1="500" y1="82" x2="500" y2="98" stroke="var(--fg-muted)" stroke-width="2" marker-end="url(#ucB)"/>
+          <line x1="590" y1="150" x2="638" y2="100" stroke="var(--fg-muted)" stroke-width="2" marker-end="url(#ucB)"/>
+          <line x1="730" y1="114" x2="730" y2="138" stroke="var(--fg-muted)" stroke-width="2" marker-end="url(#ucB)"/>
+          <line x1="730" y1="184" x2="730" y2="208" stroke="var(--fg-muted)" stroke-width="2" marker-end="url(#ucB)"/>
+          <line x1="500" y1="218" x2="500" y2="288" stroke="var(--fg-muted)" stroke-width="2" marker-end="url(#ucB)"/>
+        </svg>
+        <figcaption><b>Figure 3.</b> Channel signals (including Db2 z/OS via Data Gate) land on Kafka; Flink
+        joins and scores them against enrichment topics, emitting an alert stream consumed by blocking,
+        notification, and case-management services, with all scored events sinking to the lakehouse for retraining.</figcaption>
+      </figure>
+      <div class="uc-details">
+        <span class="lbl">Key technical details</span>
+        <ul>
+          <li>Key partitioning by account/card plus <b>exactly-once</b> processing in Flink prevents
+          double-counting velocity features after a restart.</li>
+          <li>One scored stream, many independent consumers (block service, dashboards, lakehouse) — no
+          duplication and no extra load on the source systems.</li>
+          <li>The same Iceberg sink that feeds investigation also produces the training set for the next
+          model version, closing the loop with the ML pipeline on the watsonx.data page.</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="usecase">
+      <h3><span class="uc-num">UC 3</span> Connect, process &amp; govern real-time data products</h3>
+      <div class="uc-tags"><span class="tag">Stream Governance</span><span class="tag">Event Endpoint Mgmt</span><span class="tag">data products</span></div>
+      <p class="uc-scenario">The big-picture pattern behind the acquisition: roughly 80% of companies still
+      decide on stale data. IBM unifies Confluent event streaming with governance (Schema Registry,
+      Event Endpoint Management, watsonx.data intelligence) to publish trusted, reusable <b>data products</b>
+      that fan out to three consumption pillars — analytics, integration, and the mainframe — for agents and
+      apps to act on. <sup>[9]</sup></p>
+      <figure>
+        <svg viewBox="0 0 900 400" role="img" aria-label="Connect process govern data products">
+          <defs><marker id="ucC" markerWidth="10" markerHeight="10" refX="8" refY="5" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="var(--fg-muted)"/></marker></defs>
+          <!-- sources -->
+          <rect x="20" y="160" width="150" height="80" rx="6" fill="var(--bg-elev)" stroke="var(--accent-2)" stroke-width="2"/><text x="95" y="192" text-anchor="middle" fill="var(--fg)" font-size="12">apps · SaaS</text><text x="95" y="210" text-anchor="middle" fill="var(--fg)" font-size="12">core systems</text><text x="95" y="228" text-anchor="middle" fill="var(--fg-muted)" font-size="11">· IBM Z events</text>
+          <!-- governance band -->
+          <rect x="208" y="50" width="180" height="72" rx="6" fill="var(--bg-elev)" stroke="var(--gov)" stroke-width="2"/><text x="298" y="74" text-anchor="middle" fill="var(--gov)" font-size="12" font-weight="700">Govern</text><text x="298" y="92" text-anchor="middle" fill="var(--fg-muted)" font-size="10">Schema Registry · EEM</text><text x="298" y="108" text-anchor="middle" fill="var(--fg-muted)" font-size="10">watsonx.data intelligence</text>
+          <!-- hub -->
+          <rect x="208" y="150" width="180" height="100" rx="6" fill="var(--bg-elev)" stroke="var(--kafka)" stroke-width="2.5"/><text x="298" y="194" text-anchor="middle" fill="var(--kafka)" font-size="14" font-weight="700">Confluent</text><text x="298" y="214" text-anchor="middle" fill="var(--fg)" font-size="12">Kafka backbone</text><text x="298" y="232" text-anchor="middle" fill="var(--fg-muted)" font-size="10">→ data products</text>
+          <!-- pillars -->
+          <rect x="430" y="56" width="210" height="68" rx="6" fill="var(--bg-elev)" stroke="var(--lake)" stroke-width="2"/><text x="535" y="80" text-anchor="middle" fill="var(--fg)" font-size="12" font-weight="600">watsonx.data</text><text x="535" y="98" text-anchor="middle" fill="var(--fg-muted)" font-size="10">Tableflow→Iceberg→Presto/Spark</text><text x="535" y="113" text-anchor="middle" fill="var(--fg-muted)" font-size="10">+ Milvus</text>
+          <rect x="430" y="166" width="210" height="68" rx="6" fill="var(--bg-elev)" stroke="var(--accent-2)" stroke-width="2"/><text x="535" y="190" text-anchor="middle" fill="var(--fg)" font-size="12" font-weight="600">IBM Integration</text><text x="535" y="208" text-anchor="middle" fill="var(--fg-muted)" font-size="10">MQ + webMethods</text><text x="535" y="223" text-anchor="middle" fill="var(--fg-muted)" font-size="10">→ business action</text>
+          <rect x="430" y="276" width="210" height="68" rx="6" fill="var(--bg-elev)" stroke="var(--kafka)" stroke-width="2"/><text x="535" y="300" text-anchor="middle" fill="var(--fg)" font-size="12" font-weight="600">IBM Z</text><text x="535" y="318" text-anchor="middle" fill="var(--fg-muted)" font-size="10">Data Gate CDC streaming</text><text x="535" y="333" text-anchor="middle" fill="var(--fg-muted)" font-size="10">mainframe data + apps</text>
+          <!-- consumers -->
+          <rect x="680" y="150" width="200" height="100" rx="6" fill="var(--bg-elev)" stroke="var(--ai)" stroke-width="2.5"/><text x="780" y="186" text-anchor="middle" fill="var(--fg)" font-size="12" font-weight="700">watsonx Orchestrate</text><text x="780" y="204" text-anchor="middle" fill="var(--fg)" font-size="12">+ watsonx.ai</text><text x="780" y="224" text-anchor="middle" fill="var(--fg-muted)" font-size="10">agents act on data in</text><text x="780" y="238" text-anchor="middle" fill="var(--fg-muted)" font-size="10">motion &amp; at rest</text>
+          <!-- arrows -->
+          <line x1="170" y1="200" x2="206" y2="200" stroke="var(--fg-muted)" stroke-width="2" marker-end="url(#ucC)"/>
+          <line x1="298" y1="150" x2="298" y2="124" stroke="var(--gov)" stroke-width="2" marker-end="url(#ucC)"/>
+          <line x1="388" y1="180" x2="426" y2="100" stroke="var(--fg-muted)" stroke-width="2" marker-end="url(#ucC)"/>
+          <line x1="388" y1="200" x2="426" y2="200" stroke="var(--fg-muted)" stroke-width="2" marker-end="url(#ucC)"/>
+          <line x1="388" y1="220" x2="426" y2="300" stroke="var(--fg-muted)" stroke-width="2" marker-end="url(#ucC)"/>
+          <line x1="640" y1="90" x2="678" y2="170" stroke="var(--fg-muted)" stroke-width="2" marker-end="url(#ucC)"/>
+          <line x1="640" y1="200" x2="678" y2="200" stroke="var(--fg-muted)" stroke-width="2" marker-end="url(#ucC)"/>
+          <line x1="640" y1="310" x2="678" y2="230" stroke="var(--fg-muted)" stroke-width="2" marker-end="url(#ucC)"/>
+        </svg>
+        <figcaption><b>Figure 4.</b> Sources land on the Confluent backbone; a governance layer turns raw
+        topics into trusted data products that fan out to the watsonx.data, IBM Integration, and IBM Z
+        pillars — all consumed by Orchestrate/watsonx.ai agents acting on data in motion and at rest.</figcaption>
+      </figure>
+      <div class="uc-details">
+        <span class="lbl">Key technical details</span>
+        <ul>
+          <li>The governance layer is what turns a topic into a <i>product</i>: a schema contract, an
+          AsyncAPI-described endpoint (Event Endpoint Management), and column-level lineage.</li>
+          <li>Each pillar is detailed on its own page — this diagram is the index. The same data product can
+          feed all three pillars simultaneously without copies.</li>
+          <li>Confluent Cloud's engine is KORA (cloud-native Kafka); the acquisition (~$11B, completed
+          2026-03-17) makes this the spine of IBM's AI-ready data strategy.</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="refs">
+      <h2>References</h2>
+      <ol>
+        <li>[1] IBM Newsroom — <i>IBM Completes Acquisition of Confluent</i>. <a href="https://newsroom.ibm.com/2026-03-17-ibm-completes-acquisition-of-confluent,-making-real-time-data-the-engine-of-enterprise-ai-and-agents">https://newsroom.ibm.com/2026-03-17-ibm-completes-acquisition-of-confluent,-making-real-time-data-the-engine-of-enterprise-ai-and-agents</a></li>
+        <li>[2] Confluent — <i>IBM Completes Acquisition of Confluent</i> (press release). <a href="https://www.confluent.io/press-release/ibm-completes-acquisition-of-confluent/">https://www.confluent.io/press-release/ibm-completes-acquisition-of-confluent/</a></li>
+        <li>[3] Confluent — <i>IBM Partner Page</i>. <a href="https://www.confluent.io/partner/ibm/">https://www.confluent.io/partner/ibm/</a></li>
+        <li>[4] IBM Developer — <i>Build an event-driven agentic AI system with Confluent and watsonx Orchestrate</i>. <a href="https://developer.ibm.com/tutorials/event-driven-agentic-ai-system-confluent-watsonx-orchestrate/">https://developer.ibm.com/tutorials/event-driven-agentic-ai-system-confluent-watsonx-orchestrate/</a></li>
+        <li>[5] IBM Developer — <i>Connect MCP tools to watsonx Orchestrate ADK</i>. <a href="https://developer.ibm.com/tutorials/connect-mcp-tools-watsonx-orchestrate-adk/">https://developer.ibm.com/tutorials/connect-mcp-tools-watsonx-orchestrate-adk/</a></li>
+        <li>[6] Confluent Documentation — <i>Tableflow Overview</i>. <a href="https://docs.confluent.io/cloud/current/topics/tableflow/overview.html">https://docs.confluent.io/cloud/current/topics/tableflow/overview.html</a></li>
+        <li>[7] Apache Iceberg. <a href="https://iceberg.apache.org/">https://iceberg.apache.org/</a></li>
+        <li>[8] Confluent — <i>Fraud Detection use case</i>. <a href="https://www.confluent.io/use-case/fraud-detection/">https://www.confluent.io/use-case/fraud-detection/</a></li>
+        <li>[9] IBM — <i>Connect, process and govern your real-time data with IBM and Confluent</i>. <a href="https://www.ibm.com/products/confluent">https://www.ibm.com/products/confluent</a></li>
+      </ol>
+    </div>
+  </section>
+  <section class="page" id="page-watsonxdata">
+    <div class="pagehead">
+      <div class="eyebrow">IBM Confluent + IBM watsonx.data</div>
+      <h1>Streaming into the Open Lakehouse</h1>
+      <p class="abstract">The integration point is <b>Confluent Tableflow</b>: it materializes a Kafka
+      topic as an Apache Iceberg table, exposed through an Iceberg REST Catalog over object storage.
+      watsonx.data then queries those tables in place — with its Presto (C++/Velox) and Spark engines —
+      without copying data. This page covers the exact catalog wiring for both engines, the read-only
+      constraint and write-back path, the Presto storage asymmetry, and the Milvus / lineage side-paths.</p>
+    </div>
+
+    <p>Tableflow turns "a topic" into "a table" continuously. Each topic becomes an Iceberg table whose
+    schema is driven by the topic's Schema Registry subject; new records append as Iceberg data files,
+    and schema changes propagate via Iceberg's schema-evolution. The result is a zero-copy federation
+    surface: the same bytes that streamed through Kafka are queryable as columnar Parquet by any
+    Iceberg-aware engine, with watsonx.data being the IBM-native one.</p>
+
+    <figure>
+      <svg viewBox="0 0 900 430" role="img" aria-label="Tableflow to Iceberg to watsonx.data pipeline">
+        <rect class="svg-bg" x="0" y="0" width="900" height="430" rx="8"/>
+        <!-- Kafka topic -->
+        <rect x="30" y="40" width="150" height="60" rx="6" fill="var(--bg-code)" stroke="var(--kafka)" stroke-width="2"/>
+        <text x="105" y="66" text-anchor="middle" fill="var(--fg)" font-size="13" font-weight="600">Kafka topic</text>
+        <text x="105" y="84" text-anchor="middle" fill="var(--fg-muted)" font-size="11">+ Schema Registry</text>
+        <!-- Tableflow -->
+        <rect x="230" y="40" width="150" height="60" rx="6" fill="var(--bg-code)" stroke="var(--kafka)" stroke-width="2"/>
+        <text x="305" y="66" text-anchor="middle" fill="var(--fg)" font-size="13" font-weight="600">Tableflow</text>
+        <text x="305" y="84" text-anchor="middle" fill="var(--fg-muted)" font-size="11">materialize → Iceberg</text>
+        <!-- Iceberg REST Catalog -->
+        <rect x="430" y="30" width="170" height="80" rx="6" fill="var(--bg-code)" stroke="var(--lake)" stroke-width="2"/>
+        <text x="515" y="58" text-anchor="middle" fill="var(--fg)" font-size="13" font-weight="600">Iceberg REST</text>
+        <text x="515" y="76" text-anchor="middle" fill="var(--fg)" font-size="13" font-weight="600">Catalog</text>
+        <text x="515" y="96" text-anchor="middle" fill="var(--fg-muted)" font-size="11">metadata / snapshots</text>
+        <!-- Object storage -->
+        <rect x="430" y="140" width="170" height="60" rx="6" fill="var(--bg-code)" stroke="var(--lake)" stroke-width="2"/>
+        <text x="515" y="166" text-anchor="middle" fill="var(--fg)" font-size="13" font-weight="600">Object storage</text>
+        <text x="515" y="184" text-anchor="middle" fill="var(--fg-muted)" font-size="11">IBM COS / AWS S3 (Parquet)</text>
+        <!-- watsonx.data engines -->
+        <rect x="660" y="30" width="210" height="80" rx="6" fill="var(--bg-code)" stroke="var(--lake)" stroke-width="2"/>
+        <text x="765" y="58" text-anchor="middle" fill="var(--fg)" font-size="13" font-weight="700">watsonx.data</text>
+        <text x="765" y="78" text-anchor="middle" fill="var(--fg)" font-size="12">Presto (C++/Velox)</text>
+        <text x="765" y="96" text-anchor="middle" fill="var(--fg)" font-size="12">Spark</text>
+        <!-- Milvus side branch -->
+        <rect x="660" y="140" width="210" height="56" rx="6" fill="var(--bg-code)" stroke="var(--ai)" stroke-width="2"/>
+        <text x="765" y="164" text-anchor="middle" fill="var(--fg)" font-size="12" font-weight="600">Milvus vector store</text>
+        <text x="765" y="182" text-anchor="middle" fill="var(--fg-muted)" font-size="11">embeddings → RAG</text>
+        <!-- Lineage -->
+        <rect x="30" y="250" width="840" height="50" rx="6" fill="none" stroke="var(--gov)" stroke-width="2" stroke-dasharray="6 4"/>
+        <text x="450" y="280" text-anchor="middle" fill="var(--gov)" font-size="13" font-weight="600">watsonx.data intelligence (Manta) harvests lineage from Schema Registry → Iceberg → query engines</text>
+        <!-- write-back -->
+        <rect x="30" y="340" width="840" height="60" rx="6" fill="none" stroke="var(--warn-border)" stroke-width="2"/>
+        <text x="450" y="366" text-anchor="middle" fill="var(--warn-fg)" font-size="13" font-weight="600">Tableflow tables are READ-ONLY downstream</text>
+        <text x="450" y="386" text-anchor="middle" fill="var(--fg-muted)" font-size="12">to change data, publish to the source Kafka topic — never write to the Iceberg table directly</text>
+        <!-- arrows -->
+        <defs>
+          <marker id="arr2" markerWidth="10" markerHeight="10" refX="8" refY="5" orient="auto">
+            <path d="M0,0 L10,5 L0,10 z" fill="var(--fg-muted)"/>
+          </marker>
+        </defs>
+        <line x1="180" y1="70" x2="226" y2="70" stroke="var(--fg-muted)" stroke-width="2" marker-end="url(#arr2)"/>
+        <line x1="380" y1="70" x2="426" y2="70" stroke="var(--fg-muted)" stroke-width="2" marker-end="url(#arr2)"/>
+        <line x1="600" y1="70" x2="656" y2="70" stroke="var(--fg-muted)" stroke-width="2" marker-end="url(#arr2)"/>
+        <line x1="515" y1="110" x2="515" y2="138" stroke="var(--fg-muted)" stroke-width="2" marker-end="url(#arr2)"/>
+        <line x1="600" y1="168" x2="656" y2="168" stroke="var(--fg-muted)" stroke-width="2" marker-end="url(#arr2)"/>
+      </svg>
+      <figcaption><b>Figure 1.</b> Tableflow materializes a Kafka topic into an Iceberg table over object
+      storage; watsonx.data's Presto and Spark engines read it via the Iceberg REST Catalog. A side branch
+      feeds Milvus for RAG; Manta harvests end-to-end lineage. Downstream access is read-only.</figcaption>
+    </figure>
+
+    <h2>Wiring the Spark engine to the Tableflow catalog</h2>
+    <p>watsonx.data's Spark engine registers Tableflow as a REST catalog. The full configuration block for
+    <b>Confluent-managed storage</b> (remote-signing on, no customer credentials needed):</p>
+    <div class="pre-label">Spark — Tableflow REST catalog (Confluent-managed storage)</div>
+    <pre><code>tableflow_config = {
+    "spark.sql.catalog.tableflow": "org.apache.iceberg.spark.SparkCatalog",
+    "spark.sql.catalog.tableflow.type": "rest",
+    "spark.sql.catalog.tableflow.uri": "https://tableflow.{CLOUD_REGION}.aws.confluent.cloud/iceberg/catalog/organizations/{ORG_ID}/environments/{ENV_ID}",
+    "spark.sql.catalog.tableflow.credential": "{APIKEY}:{SECRET}",
+    "spark.sql.catalog.tableflow.io-impl": "org.apache.iceberg.aws.s3.S3FileIO",
+    "spark.sql.catalog.tableflow.rest-metrics-reporting-enabled": "false",
+    "spark.sql.catalog.tableflow.s3.remote-signing-enabled": "true",
+    "spark.sql.catalog.tableflow.client.region": "{CLOUD_REGION}"
+}</code></pre>
+    <p>For <b>customer-managed AWS S3</b> (you own the bucket), drop remote-signing and supply the S3
+    credentials directly by adding these keys:</p>
+    <div class="pre-label">Spark — additional keys for customer-managed S3</div>
+    <pre><code>"spark.sql.catalog.tableflow.s3.access-key-id": "{S3_ACCESS_KEY}",
+"spark.sql.catalog.tableflow.s3.secret-access-key": "{S3_SECRET_KEY}",
+"spark.sql.catalog.tableflow.s3.region": "{CLOUD_REGION}"</code></pre>
+
+    <h2>Wiring the Presto engine to the Tableflow catalog</h2>
+    <p>For Presto, you register a custom data source in watsonx.data's Infrastructure Manager with these
+    connector properties. Note the OAuth2 auth type against the Iceberg REST endpoint:</p>
+    <div class="pre-label">Presto — custom data source connector properties</div>
+    <pre><code>connector.name=iceberg
+iceberg.catalog.type=REST
+iceberg.rest.uri=https://tableflow.{CLOUD_REGION}.aws.confluent.cloud/iceberg/catalog/organizations/{ORG_ID}/environments/{ENV_ID}
+iceberg.rest.auth.type=OAUTH2
+iceberg.rest.auth.oauth2.credential={APIKEY}:{SECRET}
+hive.s3.aws-access-key={S3_ACCESS_KEY}
+hive.s3.aws-secret-key={S3_SECRET_KEY}</code></pre>
+    <p>Querying is then ordinary Presto SQL — but the <b>namespace is the Kafka cluster ID</b> and must be
+    double-quoted, and Tableflow exposes a <code>"$timestamp"</code> pseudo-column for event time:</p>
+    <div class="pre-label">Presto — querying Tableflow tables</div>
+    <pre><code>SHOW SCHEMAS IN confluent_catalog;
+
+SELECT * FROM confluent_catalog."{namespace}".{table_name} LIMIT 10;
+-- {namespace} = Kafka cluster ID (e.g. "lkc-abc123"), must be double-quoted</code></pre>
+
+    <div class="callout warn">
+      <span class="ct">Gotchas — Presto storage asymmetry &amp; discovery</span>
+      <ul>
+        <li><b>Presto requires customer-managed storage.</b> Unlike Spark, the Presto connector does
+        <b>not</b> support Confluent-managed storage / vended credentials — you must point it at your own
+        S3 bucket with explicit keys. This is the single most common misconfiguration.</li>
+        <li><b>No auto-discovery.</b> Tableflow tables do not appear in watsonx.data's Data Manager and
+        are not enumerable via <code>SHOW TABLES</code>. You must know the exact topic name and Kafka
+        cluster ID up front to query them.</li>
+        <li><b>Spark is more permissive</b>: it supports both Confluent-managed and customer-managed
+        storage. If a customer hasn't provisioned their own bucket yet, start with Spark.</li>
+      </ul>
+    </div>
+
+    <div class="callout warn">
+      <span class="ct">Gotcha — read-only constraint &amp; write-back path</span>
+      Tableflow tables are <b>read-only</b> from watsonx.data. You cannot <code>INSERT</code>/<code>UPDATE</code>
+      against the Iceberg table to change source data — the only supported mutation path is to
+      <b>publish to the source Kafka topic</b>, which Tableflow then materializes. Schema evolution is
+      automatic, so additive schema changes flow through without manual catalog edits.
+    </div>
+
+    <h2>Side-paths: vector search and lineage</h2>
+    <h3>Milvus for RAG</h3>
+    <p>watsonx.data embeds <b>Milvus</b> as its vector store. Streaming data landed in Iceberg can be
+    embedded and indexed in Milvus for semantic retrieval; watsonx Orchestrate agents perform agentic RAG
+    over that index. This is how the streaming substrate ultimately powers retrieval-augmented agents
+    without a separate vector database to operate.</p>
+    <h3>watsonx.data intelligence (Manta) lineage</h3>
+    <p>watsonx.data intelligence harvests lineage from the Confluent Schema Registry through Tableflow into
+    the Iceberg tables and downstream query engines, giving a column-level lineage graph that spans the
+    streaming and at-rest halves of the architecture — the governance backbone introduced in the Overview.</p>
+
+    <div class="callout note">
+      <span class="ct">Deployment topology note</span>
+      The object storage is the gravitational center. Co-locate watsonx.data's compute in the same cloud
+      region as the Tableflow bucket (<code>client.region</code> / <code>s3.region</code> must match) to
+      avoid cross-region egress on every scan. For Confluent-managed storage, Spark's remote-signing means
+      watsonx.data never holds long-lived S3 keys — prefer it where your security posture disallows static
+      credentials.
+    </div>
+
+    <h2>Real-world use cases</h2>
+    <p class="uc-intro">Three patterns that put the Tableflow → Iceberg → watsonx.data pipeline to work:
+    zero-copy real-time BI, retrieval-augmented agents over a streaming-fed vector store, and a closed-loop
+    ML feature/training pipeline. Each reuses the same materialized Iceberg substrate rather than copying data
+    into a separate analytics silo.</p>
+
+    <div class="usecase">
+      <h3><span class="uc-num">UC 1</span> Real-time BI with zero-copy lakehouse federation</h3>
+      <div class="uc-tags"><span class="tag">Tableflow</span><span class="tag">Presto</span><span class="tag">BI</span></div>
+      <p class="uc-scenario">Operational events (orders, clickstream, IoT) need to land in dashboards within
+      seconds, not after an overnight batch. Producers write to Kafka with the Schema Registry enforcing the
+      contract; Tableflow materializes the topic to an Iceberg table on object storage, and watsonx.data's
+      Presto engine queries it directly. No ETL job copies the data into a warehouse — the Iceberg table
+      <i>is</i> the warehouse table. <sup>[1][3]</sup></p>
+      <figure>
+        <svg viewBox="0 0 900 300" role="img" aria-label="Real-time BI zero-copy federation">
+          <defs><marker id="ucD" markerWidth="10" markerHeight="10" refX="8" refY="5" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="var(--fg-muted)"/></marker></defs>
+          <!-- producers -->
+          <rect x="20" y="118" width="150" height="64" rx="6" fill="var(--bg-elev)" stroke="var(--accent-2)" stroke-width="2"/><text x="95" y="146" text-anchor="middle" fill="var(--fg)" font-size="12">producers</text><text x="95" y="164" text-anchor="middle" fill="var(--fg-muted)" font-size="10">orders · clicks · IoT</text>
+          <!-- kafka + sr -->
+          <rect x="210" y="100" width="170" height="100" rx="6" fill="var(--bg-elev)" stroke="var(--kafka)" stroke-width="2.5"/><text x="295" y="134" text-anchor="middle" fill="var(--kafka)" font-size="13" font-weight="700">Kafka topic</text><text x="295" y="156" text-anchor="middle" fill="var(--fg-muted)" font-size="10">+ Schema Registry</text><text x="295" y="174" text-anchor="middle" fill="var(--fg-muted)" font-size="10">(contract enforced)</text>
+          <!-- tableflow -->
+          <rect x="420" y="110" width="160" height="80" rx="6" fill="var(--bg-elev)" stroke="var(--gov)" stroke-width="2"/><text x="500" y="142" text-anchor="middle" fill="var(--gov)" font-size="12" font-weight="700">Tableflow</text><text x="500" y="162" text-anchor="middle" fill="var(--fg-muted)" font-size="10">materialize → Iceberg</text>
+          <!-- iceberg storage -->
+          <rect x="420" y="218" width="160" height="56" rx="6" fill="var(--bg-elev)" stroke="var(--lake)" stroke-width="2"/><text x="500" y="242" text-anchor="middle" fill="var(--fg)" font-size="12">Iceberg on S3</text><text x="500" y="260" text-anchor="middle" fill="var(--fg-muted)" font-size="10">managed or customer</text>
+          <!-- presto -->
+          <rect x="620" y="80" width="160" height="70" rx="6" fill="var(--bg-elev)" stroke="var(--lake)" stroke-width="2.5"/><text x="700" y="110" text-anchor="middle" fill="var(--fg)" font-size="12" font-weight="700">watsonx.data</text><text x="700" y="130" text-anchor="middle" fill="var(--fg-muted)" font-size="10">Presto engine</text>
+          <!-- bi -->
+          <rect x="620" y="180" width="160" height="64" rx="6" fill="var(--bg-elev)" stroke="var(--accent)" stroke-width="2"/><text x="700" y="208" text-anchor="middle" fill="var(--fg)" font-size="12">BI dashboards</text><text x="700" y="226" text-anchor="middle" fill="var(--fg-muted)" font-size="10">seconds-fresh</text>
+          <!-- arrows -->
+          <line x1="170" y1="150" x2="206" y2="150" stroke="var(--fg-muted)" stroke-width="2" marker-end="url(#ucD)"/>
+          <line x1="380" y1="150" x2="416" y2="150" stroke="var(--fg-muted)" stroke-width="2" marker-end="url(#ucD)"/>
+          <line x1="500" y1="190" x2="500" y2="216" stroke="var(--fg-muted)" stroke-width="2" marker-end="url(#ucD)"/>
+          <line x1="580" y1="240" x2="700" y2="152" stroke="var(--fg-muted)" stroke-width="2" marker-end="url(#ucD)"/>
+          <line x1="700" y1="150" x2="700" y2="178" stroke="var(--fg-muted)" stroke-width="2" marker-end="url(#ucD)"/>
+        </svg>
+        <figcaption><b>Figure 2.</b> Producers write schema-validated events to Kafka; Tableflow materializes
+        the topic into an Iceberg table on object storage, which watsonx.data's Presto engine queries directly
+        to drive seconds-fresh dashboards — no separate ETL copy.</figcaption>
+      </figure>
+      <div class="uc-details">
+        <span class="lbl">Key technical details</span>
+        <ul>
+          <li>Tableflow tables are <b>read-only</b> downstream and evolve schema automatically — additive
+          changes flow through without manual catalog edits.</li>
+          <li>Presto requires <b>customer-managed storage</b> (no vended credentials); Spark works against both
+          Confluent-managed and customer S3. Pick the engine to match your storage and credential posture.</li>
+          <li>Co-locate watsonx.data compute in the Tableflow bucket's region to avoid cross-region egress on
+          every scan.</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="usecase">
+      <h3><span class="uc-num">UC 2</span> Retrieval-augmented agents over a streaming-fed Milvus index</h3>
+      <div class="uc-tags"><span class="tag">Milvus</span><span class="tag">RAG</span><span class="tag">Orchestrate</span></div>
+      <p class="uc-scenario">Knowledge that changes constantly (support tickets, product docs, policy updates)
+      must reach an agent without a nightly re-index. Documents stream through Kafka, an embedding pipeline
+      (watsonx.ai or Spark) vectorizes them, and the vectors land in watsonx.data's embedded <b>Milvus</b>
+      store. A watsonx Orchestrate agent retrieves the nearest neighbors at query time for grounded,
+      up-to-date answers — agentic RAG with no separate vector database to operate. <sup>[5]</sup></p>
+      <figure>
+        <svg viewBox="0 0 900 300" role="img" aria-label="RAG over streaming-fed Milvus">
+          <defs><marker id="ucE" markerWidth="10" markerHeight="10" refX="8" refY="5" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="var(--fg-muted)"/></marker></defs>
+          <!-- docs -->
+          <rect x="20" y="118" width="140" height="64" rx="6" fill="var(--bg-elev)" stroke="var(--accent-2)" stroke-width="2"/><text x="90" y="146" text-anchor="middle" fill="var(--fg)" font-size="12">documents</text><text x="90" y="164" text-anchor="middle" fill="var(--fg-muted)" font-size="10">tickets · docs · policy</text>
+          <!-- kafka -->
+          <rect x="190" y="118" width="140" height="64" rx="6" fill="var(--bg-elev)" stroke="var(--kafka)" stroke-width="2.5"/><text x="260" y="146" text-anchor="middle" fill="var(--kafka)" font-size="12" font-weight="700">Kafka topic</text><text x="260" y="164" text-anchor="middle" fill="var(--fg-muted)" font-size="10">doc-change stream</text>
+          <!-- embed -->
+          <rect x="360" y="110" width="160" height="80" rx="6" fill="var(--bg-elev)" stroke="var(--ai)" stroke-width="2"/><text x="440" y="138" text-anchor="middle" fill="var(--fg)" font-size="12">embedding pipeline</text><text x="440" y="158" text-anchor="middle" fill="var(--fg-muted)" font-size="10">watsonx.ai / Spark</text><text x="440" y="174" text-anchor="middle" fill="var(--fg-muted)" font-size="10">→ vectors</text>
+          <!-- milvus -->
+          <rect x="550" y="110" width="160" height="80" rx="6" fill="var(--bg-elev)" stroke="var(--lake)" stroke-width="2.5"/><text x="630" y="138" text-anchor="middle" fill="var(--fg)" font-size="12" font-weight="700">Milvus</text><text x="630" y="158" text-anchor="middle" fill="var(--fg-muted)" font-size="10">in watsonx.data</text><text x="630" y="174" text-anchor="middle" fill="var(--fg-muted)" font-size="10">ANN index</text>
+          <!-- orchestrate -->
+          <rect x="740" y="60" width="150" height="74" rx="6" fill="var(--bg-elev)" stroke="var(--ai)" stroke-width="2.5"/><text x="815" y="92" text-anchor="middle" fill="var(--fg)" font-size="12" font-weight="700">Orchestrate</text><text x="815" y="112" text-anchor="middle" fill="var(--fg-muted)" font-size="10">agentic RAG</text>
+          <!-- answer -->
+          <rect x="740" y="166" width="150" height="64" rx="6" fill="var(--bg-elev)" stroke="var(--accent)" stroke-width="2"/><text x="815" y="194" text-anchor="middle" fill="var(--fg)" font-size="12">grounded answer</text><text x="815" y="212" text-anchor="middle" fill="var(--fg-muted)" font-size="10">to user / app</text>
+          <!-- arrows -->
+          <line x1="160" y1="150" x2="186" y2="150" stroke="var(--fg-muted)" stroke-width="2" marker-end="url(#ucE)"/>
+          <line x1="330" y1="150" x2="356" y2="150" stroke="var(--fg-muted)" stroke-width="2" marker-end="url(#ucE)"/>
+          <line x1="520" y1="150" x2="546" y2="150" stroke="var(--fg-muted)" stroke-width="2" marker-end="url(#ucE)"/>
+          <line x1="710" y1="140" x2="738" y2="110" stroke="var(--fg-muted)" stroke-width="2" marker-end="url(#ucE)"/>
+          <line x1="815" y1="134" x2="815" y2="164" stroke="var(--fg-muted)" stroke-width="2" marker-end="url(#ucE)"/>
+        </svg>
+        <figcaption><b>Figure 3.</b> Document changes stream through Kafka into an embedding pipeline; vectors
+        land in watsonx.data's embedded Milvus index, which a watsonx Orchestrate agent queries at request time
+        for grounded, continuously-fresh retrieval-augmented answers.</figcaption>
+      </figure>
+      <div class="uc-details">
+        <span class="lbl">Key technical details</span>
+        <ul>
+          <li>Milvus ships <i>inside</i> watsonx.data, so the vector store sits next to the Iceberg tables it
+          was derived from — one platform for both at-rest analytics and ANN search.</li>
+          <li>Because the index is fed by a stream, it stays current: a changed document re-embeds and updates
+          the vectors rather than waiting for a scheduled rebuild.</li>
+          <li>Orchestrate retrieves over Milvus as a tool, making this RAG path composable with the other
+          agent tools (e.g. the ksqlDB→MCP availability tool from the Overview).</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="usecase">
+      <h3><span class="uc-num">UC 3</span> Closed-loop ML feature &amp; training pipeline</h3>
+      <div class="uc-tags"><span class="tag">Flink</span><span class="tag">Spark</span><span class="tag">watsonx.ai</span></div>
+      <p class="uc-scenario">A scoring model (fraud, churn, recommendations) needs both fresh features at
+      inference time and a reproducible training set. Flink computes windowed features on the live stream;
+      Tableflow lands the same events as Iceberg snapshots. watsonx.data's Spark engine does feature
+      engineering over the time-travel snapshots, watsonx.ai trains, and the new model deploys back into the
+      Flink scoring job — closing the loop. <sup>[2]</sup></p>
+      <figure>
+        <svg viewBox="0 0 900 320" role="img" aria-label="Closed-loop ML feature and training pipeline">
+          <defs><marker id="ucF" markerWidth="10" markerHeight="10" refX="8" refY="5" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="var(--fg-muted)"/></marker></defs>
+          <!-- events -->
+          <rect x="20" y="40" width="140" height="60" rx="6" fill="var(--bg-elev)" stroke="var(--accent-2)" stroke-width="2"/><text x="90" y="66" text-anchor="middle" fill="var(--fg)" font-size="12">events</text><text x="90" y="84" text-anchor="middle" fill="var(--fg-muted)" font-size="10">on Kafka</text>
+          <!-- flink features -->
+          <rect x="200" y="30" width="170" height="80" rx="6" fill="var(--bg-elev)" stroke="var(--kafka)" stroke-width="2"/><text x="285" y="58" text-anchor="middle" fill="var(--fg)" font-size="12" font-weight="600">Flink</text><text x="285" y="78" text-anchor="middle" fill="var(--fg-muted)" font-size="10">windowed features</text><text x="285" y="94" text-anchor="middle" fill="var(--fg-muted)" font-size="10">+ live scoring</text>
+          <!-- tableflow -->
+          <rect x="200" y="150" width="170" height="60" rx="6" fill="var(--bg-elev)" stroke="var(--gov)" stroke-width="2"/><text x="285" y="176" text-anchor="middle" fill="var(--gov)" font-size="12" font-weight="700">Tableflow</text><text x="285" y="194" text-anchor="middle" fill="var(--fg-muted)" font-size="10">→ Iceberg snapshots</text>
+          <!-- spark -->
+          <rect x="410" y="150" width="170" height="60" rx="6" fill="var(--bg-elev)" stroke="var(--lake)" stroke-width="2"/><text x="495" y="176" text-anchor="middle" fill="var(--fg)" font-size="12" font-weight="600">watsonx.data Spark</text><text x="495" y="194" text-anchor="middle" fill="var(--fg-muted)" font-size="10">feature eng · time-travel</text>
+          <!-- watsonx.ai -->
+          <rect x="620" y="150" width="170" height="60" rx="6" fill="var(--bg-elev)" stroke="var(--ai)" stroke-width="2.5"/><text x="705" y="176" text-anchor="middle" fill="var(--fg)" font-size="12" font-weight="700">watsonx.ai</text><text x="705" y="194" text-anchor="middle" fill="var(--fg-muted)" font-size="10">train + evaluate</text>
+          <!-- deploy back -->
+          <rect x="620" y="30" width="170" height="60" rx="6" fill="var(--bg-elev)" stroke="var(--accent)" stroke-width="2"/><text x="705" y="56" text-anchor="middle" fill="var(--fg)" font-size="12">deploy model</text><text x="705" y="74" text-anchor="middle" fill="var(--fg-muted)" font-size="10">→ Flink scoring job</text>
+          <!-- arrows -->
+          <line x1="160" y1="70" x2="196" y2="70" stroke="var(--fg-muted)" stroke-width="2" marker-end="url(#ucF)"/>
+          <line x1="160" y1="80" x2="196" y2="175" stroke="var(--fg-muted)" stroke-width="2" marker-end="url(#ucF)"/>
+          <line x1="370" y1="180" x2="406" y2="180" stroke="var(--fg-muted)" stroke-width="2" marker-end="url(#ucF)"/>
+          <line x1="580" y1="180" x2="616" y2="180" stroke="var(--fg-muted)" stroke-width="2" marker-end="url(#ucF)"/>
+          <line x1="705" y1="150" x2="705" y2="92" stroke="var(--fg-muted)" stroke-width="2" marker-end="url(#ucF)"/>
+          <line x1="620" y1="60" x2="372" y2="60" stroke="var(--accent)" stroke-width="2" stroke-dasharray="5,4" marker-end="url(#ucF)"/>
+        </svg>
+        <figcaption><b>Figure 4.</b> Flink computes live features and scores in-stream while Tableflow lands
+        Iceberg snapshots; Spark engineers features over time-travel snapshots, watsonx.ai trains, and the new
+        model is redeployed into the Flink scoring job (dashed return path) — a closed retraining loop.</figcaption>
+      </figure>
+      <div class="uc-details">
+        <span class="lbl">Key technical details</span>
+        <ul>
+          <li>Iceberg <b>time-travel snapshots</b> give reproducible training sets — you can train against the
+          exact data state as of a snapshot, eliminating train/serve skew from a moving table.</li>
+          <li>Flink owns the low-latency path (features + scoring); Spark owns the heavy batch path (feature
+          engineering + backfills) — both read the same materialized substrate.</li>
+          <li>This is the training half of the Overview's fraud loop: the model deployed here is the scorer in
+          that diagram, and the lakehouse sink there is the snapshot source here.</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="refs">
+      <h2>References</h2>
+      <ol>
+        <li>[1] IBM Documentation — <i>Integrating Confluent Tableflow in watsonx.data</i>. <a href="https://www.ibm.com/docs/en/watsonxdata/saas?topic=integrations-integrating-confluent-tableflow-in">https://www.ibm.com/docs/en/watsonxdata/saas?topic=integrations-integrating-confluent-tableflow-in</a></li>
+        <li>[2] IBM Documentation — <i>Querying Confluent Tableflow using the Spark engine</i>. <a href="https://www.ibm.com/docs/en/watsonxdata/saas?topic=in-querying-confluent-tableflow-using-spark-engine">https://www.ibm.com/docs/en/watsonxdata/saas?topic=in-querying-confluent-tableflow-using-spark-engine</a></li>
+        <li>[3] IBM Documentation — <i>Querying Confluent Tableflow using the Presto engine</i>. <a href="https://www.ibm.com/docs/en/watsonxdata/saas?topic=in-querying-confluent-tableflow-using-presto-engine">https://www.ibm.com/docs/en/watsonxdata/saas?topic=in-querying-confluent-tableflow-using-presto-engine</a></li>
+        <li>[4] IBM Documentation — <i>What's new in watsonx.data</i>. <a href="https://www.ibm.com/docs/en/watsonxdata/standard/2.1.x?topic=overview-whats-new-in-watsonxdata">https://www.ibm.com/docs/en/watsonxdata/standard/2.1.x?topic=overview-whats-new-in-watsonxdata</a></li>
+        <li>[5] IBM Documentation — <i>Integrating watsonx.data Milvus with watsonx Orchestrate</i>. <a href="https://www.ibm.com/docs/en/watsonxdata/standard/2.2.x?topic=milvus-integrating-watsonxdata-watsonx-orchestrate">https://www.ibm.com/docs/en/watsonxdata/standard/2.2.x?topic=milvus-integrating-watsonxdata-watsonx-orchestrate</a></li>
+        <li>[6] IBM Documentation — <i>Integrating Manta data lineage</i>. <a href="https://www.ibm.com/docs/en/watsonxdata/saas?topic=integrations-integrating-manta-data-lineage">https://www.ibm.com/docs/en/watsonxdata/saas?topic=integrations-integrating-manta-data-lineage</a></li>
+        <li>[7] IBM — <i>watsonx.data intelligence: Data lineage</i>. <a href="https://www.ibm.com/products/watsonx-data-intelligence/data-lineage">https://www.ibm.com/products/watsonx-data-intelligence/data-lineage</a></li>
+        <li>[8] IBM Community — <i>AI-ready data with open standards using Confluent</i>. <a href="https://community.ibm.com/community/user/blogs/william-accetta/2026/03/17/aiready-data-with-open-standards-using-confluent">https://community.ibm.com/community/user/blogs/william-accetta/2026/03/17/aiready-data-with-open-standards-using-confluent</a></li>
+        <li>[9] Presto Documentation — <i>Iceberg Connector</i>. <a href="https://prestodb.io/docs/current/connector/iceberg.html">https://prestodb.io/docs/current/connector/iceberg.html</a></li>
+      </ol>
+    </div>
+  </section>
+  <section class="page" id="page-integration">
+    <div class="pagehead">
+      <div class="eyebrow">IBM Confluent + IBM Integration</div>
+      <h1>Confluent in the IBM Integration Estate</h1>
+      <p class="abstract">IBM's integration portfolio — IBM MQ, webMethods/ACE, Event Automation, and
+      StreamSets/DataStage — meets Confluent at well-defined connector and protocol boundaries. This page
+      maps each integration product to its Confluent seam, walks the Event Automation layering and its
+      Statement of Direction toward IBM Confluent Platform, covers the MQ source/sink trade-offs, and
+      enumerates the GA connector set (Db2, Oracle XStream, SAP).</p>
+    </div>
+
+    <p>The organizing idea: Confluent Kafka is the durable event backbone, and the IBM integration
+    products are either <b>producers/consumers</b> on that backbone (MQ, connectors) or <b>processing and
+    governance layers</b> built over it (Event Automation). The acquisition's Statement of Direction
+    consolidates IBM's own event-streaming components onto Confluent's engine over time.</p>
+
+    <figure>
+      <svg viewBox="0 0 900 420" role="img" aria-label="Event Automation and integration products over Confluent core">
+        <rect class="svg-bg" x="0" y="0" width="900" height="420" rx="8"/>
+        <!-- Event Automation layer on top -->
+        <rect x="30" y="30" width="840" height="92" rx="8" fill="none" stroke="var(--ai)" stroke-width="2"/>
+        <text x="50" y="54" fill="var(--ai)" font-size="14" font-weight="700">IBM Event Automation (governance / processing layer)</text>
+        <rect x="50" y="64" width="250" height="44" rx="6" fill="var(--bg-code)" stroke="var(--ai)"/>
+        <text x="175" y="84" text-anchor="middle" fill="var(--fg)" font-size="12">Event Streams</text>
+        <text x="175" y="100" text-anchor="middle" fill="var(--fg-muted)" font-size="10">managed Kafka</text>
+        <rect x="320" y="64" width="250" height="44" rx="6" fill="var(--bg-code)" stroke="var(--ai)"/>
+        <text x="445" y="84" text-anchor="middle" fill="var(--fg)" font-size="12">Event Processing</text>
+        <text x="445" y="100" text-anchor="middle" fill="var(--fg-muted)" font-size="10">low-code Flink UI</text>
+        <rect x="590" y="64" width="260" height="44" rx="6" fill="var(--bg-code)" stroke="var(--ai)"/>
+        <text x="720" y="84" text-anchor="middle" fill="var(--fg)" font-size="12">Event Endpoint Mgmt</text>
+        <text x="720" y="100" text-anchor="middle" fill="var(--fg-muted)" font-size="10">AsyncAPI catalog / governance</text>
+
+        <!-- Confluent core -->
+        <rect x="30" y="150" width="840" height="80" rx="8" fill="none" stroke="var(--kafka)" stroke-width="2.5"/>
+        <text x="450" y="178" text-anchor="middle" fill="var(--kafka)" font-size="15" font-weight="700">Confluent Kafka core — topics · Schema Registry · Connect · Flink</text>
+        <text x="450" y="206" text-anchor="middle" fill="var(--fg-muted)" font-size="12">the durable event backbone</text>
+
+        <!-- feeders below -->
+        <rect x="30" y="270" width="195" height="110" rx="6" fill="var(--bg-code)" stroke="var(--accent-2)"/>
+        <text x="127" y="296" text-anchor="middle" fill="var(--fg)" font-size="13" font-weight="600">IBM MQ</text>
+        <text x="127" y="316" text-anchor="middle" fill="var(--fg-muted)" font-size="11">Source / Sink</text>
+        <text x="127" y="332" text-anchor="middle" fill="var(--fg-muted)" font-size="11">connectors</text>
+        <text x="127" y="356" text-anchor="middle" fill="var(--fg-muted)" font-size="10">queues ⇄ topics</text>
+
+        <rect x="245" y="270" width="195" height="110" rx="6" fill="var(--bg-code)" stroke="var(--accent-2)"/>
+        <text x="342" y="296" text-anchor="middle" fill="var(--fg)" font-size="13" font-weight="600">webMethods / ACE</text>
+        <text x="342" y="320" text-anchor="middle" fill="var(--fg-muted)" font-size="11">app/API integration</text>
+        <text x="342" y="340" text-anchor="middle" fill="var(--fg-muted)" font-size="11">flows → Kafka</text>
+
+        <rect x="460" y="270" width="195" height="110" rx="6" fill="var(--bg-code)" stroke="var(--accent-2)"/>
+        <text x="557" y="296" text-anchor="middle" fill="var(--fg)" font-size="13" font-weight="600">StreamSets /</text>
+        <text x="557" y="314" text-anchor="middle" fill="var(--fg)" font-size="13" font-weight="600">DataStage</text>
+        <text x="557" y="338" text-anchor="middle" fill="var(--fg-muted)" font-size="11">batch + CDC ETL</text>
+
+        <rect x="675" y="270" width="195" height="110" rx="6" fill="var(--bg-code)" stroke="var(--accent-2)"/>
+        <text x="772" y="296" text-anchor="middle" fill="var(--fg)" font-size="13" font-weight="600">DB connectors</text>
+        <text x="772" y="318" text-anchor="middle" fill="var(--fg-muted)" font-size="11">Db2 · Oracle XStream</text>
+        <text x="772" y="338" text-anchor="middle" fill="var(--fg-muted)" font-size="11">SAP S/4HANA</text>
+
+        <defs>
+          <marker id="arr3" markerWidth="10" markerHeight="10" refX="8" refY="5" orient="auto">
+            <path d="M0,0 L10,5 L0,10 z" fill="var(--fg-muted)"/>
+          </marker>
+        </defs>
+        <line x1="127" y1="270" x2="127" y2="232" stroke="var(--fg-muted)" stroke-width="2" marker-end="url(#arr3)"/>
+        <line x1="342" y1="270" x2="342" y2="232" stroke="var(--fg-muted)" stroke-width="2" marker-end="url(#arr3)"/>
+        <line x1="557" y1="270" x2="557" y2="232" stroke="var(--fg-muted)" stroke-width="2" marker-end="url(#arr3)"/>
+        <line x1="772" y1="270" x2="772" y2="232" stroke="var(--fg-muted)" stroke-width="2" marker-end="url(#arr3)"/>
+        <line x1="450" y1="150" x2="450" y2="122" stroke="var(--fg-muted)" stroke-width="2" marker-end="url(#arr3)"/>
+      </svg>
+      <figcaption><b>Figure 1.</b> Confluent Kafka is the backbone. IBM MQ, webMethods/ACE,
+      StreamSets/DataStage, and the database connectors feed events in; IBM Event Automation
+      (Event Streams, Event Processing, Event Endpoint Management) sits above as a processing and
+      governance layer.</figcaption>
+    </figure>
+
+    <h2>Event Automation and the Statement of Direction</h2>
+    <p>IBM Event Automation is three components: <b>Event Streams</b> (a managed Kafka distribution),
+    <b>Event Processing</b> (a low-code authoring UI that compiles to Apache Flink), and <b>Event Endpoint
+    Management</b> (an AsyncAPI-based catalog that governs and socializes event endpoints). Historically
+    these shipped as add-ons to IBM Cloud Pak for Integration (CP4I).</p>
+    <div class="callout note">
+      <span class="ct">Statement of Direction</span>
+      Post-acquisition, IBM's direction is to <b>converge its event-streaming engine onto Confluent</b>.
+      Event Streams and Event Processing are slated for deprecation in future CP4I / webMethods releases,
+      with future event-driven architecture delivered via <b>IBM Confluent Platform</b> — available both
+      standalone and as an add-on to CP4I and webMethods. When advising a customer starting fresh today,
+      architect against Confluent Platform / Confluent Cloud rather than net-new Event Streams deployments.
+    </div>
+
+    <h2>IBM MQ coexistence: source and sink trade-offs</h2>
+    <p>The MQ connectors bridge queue semantics and topic semantics. The <b>Source</b> connector drains an
+    MQ queue into a Kafka topic; the <b>Sink</b> connector writes a Kafka topic to an MQ queue. The design
+    tension an SE must surface:</p>
+    <div class="table-wrap"><table>
+      <thead><tr><th>Concern</th><th>IBM MQ</th><th>Kafka</th><th>Implication at the bridge</th></tr></thead>
+      <tbody>
+        <tr><td>Consumption model</td><td>Destructive get (queue drains)</td><td>Offset-based replay (log retained)</td><td>Source connector turns a one-shot get into a replayable log — downstream can reprocess</td></tr>
+        <tr><td>Ordering</td><td>Per-queue FIFO</td><td>Per-partition</td><td>Map a queue to a single partition (or key carefully) to preserve order</td></tr>
+        <tr><td>Delivery</td><td>Transactional, once-only</td><td>At-least-once by default</td><td>Expect possible duplicates after Kafka; dedupe downstream or use EOS where supported</td></tr>
+        <tr><td>Message size / format</td><td>JMS / native MQ, often EBCDIC from Z</td><td>Bytes + schema</td><td>Convert + register schema at ingest; see the IBM Z page for z/OS specifics</td></tr>
+      </tbody>
+    </table></div>
+    <p>On the mainframe specifically, running the MQ connectors in <b>bindings mode</b> on zIIP avoids the
+    CHINIT networking path and slashes the associated consumption cost — covered in depth on the IBM Z page.</p>
+
+    <h2>Database and application connectors (GA set)</h2>
+    <div class="grid2">
+      <div class="card"><h4>IBM Db2 Source (JDBC) — GA</h4><p>Confluent Cloud managed connector for Db2; query/timestamp-based capture into Kafka. For Db2 for z/OS log-based CDC, see DataGate on the IBM Z page.</p></div>
+      <div class="card"><h4>Oracle XStream CDC Source</h4><p>Low-impact log-based CDC via Oracle's XStream API — the preferred high-fidelity Oracle capture path into Kafka.</p></div>
+      <div class="card"><h4>SAP S/4HANA</h4><p>Confluent + SAP partnership; a two-phase capture pattern for S/4HANA events into Kafka for downstream processing.</p></div>
+      <div class="card"><h4>StreamSets / IBM Data Integration vs Confluent DSP</h4><p>StreamSets and DataStage cover batch + pipeline ETL; Confluent's Stream Processing (Flink/ksqlDB) covers in-motion transformation. Use ETL for at-rest movement, DSP for sub-minute stream logic.</p></div>
+    </div>
+
+    <h2>Worked example: event-driven agentic flow</h2>
+    <p>Tying the integration layer to the agent layer — the canonical pattern from the Overview:</p>
+    <ol>
+      <li>Source systems publish to Kafka topics <code>inventory.transactions</code> and <code>inventory.availability</code> (via MQ/CDC connectors above).</li>
+      <li>ksqlDB aggregates transactions into a live availability materialized view.</li>
+      <li>The view is exposed as an <b>MCP tool</b> <code>get_sku_availability(sku, branch)</code>.</li>
+      <li>A watsonx Orchestrate supervisor agent (<code>Store_Associate_Agent</code>) delegates to specialists
+      (<code>SKU_Availability_Agent</code>, <code>Substitute_Finder_Agent</code>) and performs agentic RAG over
+      enterprise docs in watsonx.data Milvus.</li>
+    </ol>
+    <div class="callout warn">
+      <span class="ct">Design consideration — connector placement</span>
+      Prefer <b>fully-managed Confluent Cloud connectors</b> where the source is reachable from the cloud;
+      drop to <b>self-managed Connect</b> (or Connect on z/OS) only when the source is network-isolated
+      (mainframe, on-prem MQ behind a firewall). Mixing managed and self-managed Connect clusters is fine,
+      but keep one Schema Registry as the single source of truth for schemas across both.
+    </div>
+
+    <h2>Real-world use cases</h2>
+    <p class="uc-intro">Three integration patterns SEs hit repeatedly: a bi-directional MQ⇄Kafka bridge that
+    keeps core systems in the loop, an Event Endpoint Management mesh that turns topics into governed,
+    self-service products, and a StreamSets + DataStage ETL pattern that complements (not competes with)
+    Confluent's in-stream processing.</p>
+
+    <div class="usecase">
+      <h3><span class="uc-num">UC 1</span> Bi-directional MQ &#8644; Kafka bridge</h3>
+      <div class="uc-tags"><span class="tag">IBM MQ</span><span class="tag">Source/Sink</span><span class="tag">exactly-once</span></div>
+      <p class="uc-scenario">A core system speaks IBM MQ; the event-driven estate speaks Kafka. The MQ Source
+      Connector drains a queue into a topic for Flink/microservice processing, and the MQ Sink Connector writes
+      results back to an MQ queue the core system consumes — a closed bridge that modernizes around the
+      mainframe without rewriting it. <sup>[3][4]</sup></p>
+      <figure>
+        <svg viewBox="0 0 900 280" role="img" aria-label="Bi-directional MQ Kafka bridge">
+          <defs><marker id="ucG" markerWidth="10" markerHeight="10" refX="8" refY="5" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="var(--fg-muted)"/></marker></defs>
+          <!-- core system -->
+          <rect x="20" y="100" width="150" height="80" rx="6" fill="var(--bg-elev)" stroke="var(--accent-2)" stroke-width="2"/><text x="95" y="134" text-anchor="middle" fill="var(--fg)" font-size="12">core system</text><text x="95" y="154" text-anchor="middle" fill="var(--fg-muted)" font-size="10">IBM MQ queues</text>
+          <!-- source connector -->
+          <rect x="210" y="40" width="160" height="64" rx="6" fill="var(--bg-elev)" stroke="var(--gov)" stroke-width="2"/><text x="290" y="66" text-anchor="middle" fill="var(--fg)" font-size="12">MQ Source Conn.</text><text x="290" y="84" text-anchor="middle" fill="var(--fg-muted)" font-size="10">JMS · needs MQ JAR</text>
+          <!-- sink connector -->
+          <rect x="210" y="176" width="160" height="64" rx="6" fill="var(--bg-elev)" stroke="var(--gov)" stroke-width="2"/><text x="290" y="202" text-anchor="middle" fill="var(--fg)" font-size="12">MQ Sink Conn.</text><text x="290" y="220" text-anchor="middle" fill="var(--fg-muted)" font-size="10">DLQ · header map</text>
+          <!-- kafka -->
+          <rect x="420" y="100" width="160" height="80" rx="6" fill="var(--bg-elev)" stroke="var(--kafka)" stroke-width="2.5"/><text x="500" y="134" text-anchor="middle" fill="var(--kafka)" font-size="13" font-weight="700">Kafka topics</text><text x="500" y="154" text-anchor="middle" fill="var(--fg-muted)" font-size="10">in / out</text>
+          <!-- flink -->
+          <rect x="630" y="100" width="160" height="80" rx="6" fill="var(--bg-elev)" stroke="var(--kafka)" stroke-width="2"/><text x="710" y="134" text-anchor="middle" fill="var(--fg)" font-size="12">Flink /</text><text x="710" y="152" text-anchor="middle" fill="var(--fg)" font-size="12">microservices</text>
+          <!-- arrows -->
+          <line x1="170" y1="120" x2="208" y2="78" stroke="var(--fg-muted)" stroke-width="2" marker-end="url(#ucG)"/>
+          <line x1="370" y1="72" x2="430" y2="110" stroke="var(--fg-muted)" stroke-width="2" marker-end="url(#ucG)"/>
+          <line x1="430" y1="170" x2="370" y2="206" stroke="var(--fg-muted)" stroke-width="2" marker-end="url(#ucG)"/>
+          <line x1="208" y1="210" x2="170" y2="172" stroke="var(--fg-muted)" stroke-width="2" marker-end="url(#ucG)"/>
+          <line x1="580" y1="140" x2="628" y2="140" stroke="var(--fg-muted)" stroke-width="2" marker-end="url(#ucG)"/>
+          <line x1="628" y1="155" x2="582" y2="155" stroke="var(--fg-muted)" stroke-width="2" marker-end="url(#ucG)"/>
+        </svg>
+        <figcaption><b>Figure 2.</b> The MQ Source Connector drains a core-system queue into Kafka for Flink /
+        microservice processing; the MQ Sink Connector writes results back to an MQ queue the core system
+        consumes — a closed, modernize-around bridge.</figcaption>
+      </figure>
+      <div class="uc-details">
+        <span class="lbl">Key technical details</span>
+        <ul>
+          <li>Both connectors are JMS-based and require the IBM MQ client JAR on the Connect worker (not
+          bundled for licensing reasons).</li>
+          <li><b>Exactly-once</b>: the Source supports at-least-once/exactly-once (v12.x); the Sink's
+          exactly-once needs a <i>dedicated</i> offset queue set with <code>DEFSOPT=EXCLUSIVE</code> — it is
+          not auto-created and must not be shared.</li>
+          <li>The Sink maps JMS headers (<code>JMSCorrelationId</code>, <code>JMSReplyTo</code>,
+          <code>JMSType</code>) and supports a dead-letter queue plus multiple tasks for throughput.</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="usecase">
+      <h3><span class="uc-num">UC 2</span> Governed event mesh with Event Endpoint Management</h3>
+      <div class="uc-tags"><span class="tag">Event Automation</span><span class="tag">AsyncAPI</span><span class="tag">self-service</span></div>
+      <p class="uc-scenario">Topics proliferate and nobody knows which are safe to consume. An admin registers a
+      topic in the Event Manager, describes it with AsyncAPI + schema, and publishes it to the Event Catalog.
+      Developers self-discover and request credentials; their clients connect through the <b>Event Gateway</b>,
+      which enforces auth, quotas, redaction, and schema filtering at runtime — independent of the Kafka
+      cluster, and equally over Confluent or Amazon MSK. <sup>[11]</sup></p>
+      <figure>
+        <svg viewBox="0 0 900 300" role="img" aria-label="Event Endpoint Management mesh">
+          <defs><marker id="ucH" markerWidth="10" markerHeight="10" refX="8" refY="5" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="var(--fg-muted)"/></marker></defs>
+          <!-- admin -->
+          <rect x="20" y="40" width="140" height="60" rx="6" fill="var(--bg-elev)" stroke="var(--accent-2)" stroke-width="2"/><text x="90" y="66" text-anchor="middle" fill="var(--fg)" font-size="12">admin</text><text x="90" y="84" text-anchor="middle" fill="var(--fg-muted)" font-size="10">registers topic</text>
+          <!-- event manager -->
+          <rect x="200" y="30" width="170" height="80" rx="6" fill="var(--bg-elev)" stroke="var(--gov)" stroke-width="2.5"/><text x="285" y="58" text-anchor="middle" fill="var(--gov)" font-size="12" font-weight="700">Event Manager</text><text x="285" y="78" text-anchor="middle" fill="var(--fg-muted)" font-size="10">AsyncAPI + schema</text><text x="285" y="94" text-anchor="middle" fill="var(--fg-muted)" font-size="10">→ Event Catalog</text>
+          <!-- developer -->
+          <rect x="20" y="190" width="140" height="64" rx="6" fill="var(--bg-elev)" stroke="var(--accent)" stroke-width="2"/><text x="90" y="218" text-anchor="middle" fill="var(--fg)" font-size="12">developer</text><text x="90" y="236" text-anchor="middle" fill="var(--fg-muted)" font-size="10">discovers · self-svc</text>
+          <!-- event gateway -->
+          <rect x="420" y="100" width="180" height="100" rx="6" fill="var(--bg-elev)" stroke="var(--gov)" stroke-width="2.5"/><text x="510" y="132" text-anchor="middle" fill="var(--gov)" font-size="12" font-weight="700">Event Gateway</text><text x="510" y="152" text-anchor="middle" fill="var(--fg-muted)" font-size="10">auth · quotas</text><text x="510" y="168" text-anchor="middle" fill="var(--fg-muted)" font-size="10">redaction · filtering</text><text x="510" y="184" text-anchor="middle" fill="var(--fg-muted)" font-size="10">(runtime enforce)</text>
+          <!-- kafka -->
+          <rect x="650" y="40" width="180" height="60" rx="6" fill="var(--bg-elev)" stroke="var(--kafka)" stroke-width="2"/><text x="740" y="66" text-anchor="middle" fill="var(--kafka)" font-size="12" font-weight="700">Confluent</text><text x="740" y="84" text-anchor="middle" fill="var(--fg-muted)" font-size="10">or Amazon MSK</text>
+          <!-- client app -->
+          <rect x="650" y="200" width="180" height="60" rx="6" fill="var(--bg-elev)" stroke="var(--accent)" stroke-width="2"/><text x="740" y="226" text-anchor="middle" fill="var(--fg)" font-size="12">client app</text><text x="740" y="244" text-anchor="middle" fill="var(--fg-muted)" font-size="10">consumes via gateway</text>
+          <!-- arrows -->
+          <line x1="160" y1="70" x2="198" y2="70" stroke="var(--fg-muted)" stroke-width="2" marker-end="url(#ucH)"/>
+          <line x1="285" y1="110" x2="430" y2="150" stroke="var(--fg-muted)" stroke-width="2" stroke-dasharray="4,3" marker-end="url(#ucH)"/>
+          <line x1="160" y1="222" x2="418" y2="175" stroke="var(--fg-muted)" stroke-width="2" marker-end="url(#ucH)"/>
+          <line x1="600" y1="120" x2="648" y2="85" stroke="var(--fg-muted)" stroke-width="2" marker-end="url(#ucH)"/>
+          <line x1="600" y1="180" x2="648" y2="220" stroke="var(--fg-muted)" stroke-width="2" marker-end="url(#ucH)"/>
+        </svg>
+        <figcaption><b>Figure 3.</b> An admin publishes a topic as an AsyncAPI-described product in the Event
+        Manager; developers self-discover and request credentials; their clients connect through the Event
+        Gateway, which enforces auth, quotas, redaction, and filtering at runtime over Confluent or MSK.</figcaption>
+      </figure>
+      <div class="uc-details">
+        <span class="lbl">Key technical details</span>
+        <ul>
+          <li>EEM splits <b>control plane</b> (Event Manager — cataloging, policy) from <b>data plane</b> (Event
+          Gateway — runtime enforcement), so policy changes don't touch the cluster.</li>
+          <li>Enforcement is broker-agnostic: the same governance applies whether the backing cluster is
+          Confluent or Amazon MSK, which matters for multi-vendor estates.</li>
+          <li>Endpoints can be imported into API Connect, bridging the event mesh into the broader API
+          management story.</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="usecase">
+      <h3><span class="uc-num">UC 3</span> StreamSets + DataStage ETL alongside in-stream processing</h3>
+      <div class="uc-tags"><span class="tag">StreamSets</span><span class="tag">DataStage</span><span class="tag">watsonx.data integration</span></div>
+      <p class="uc-scenario">Not everything belongs in a stream. StreamSets builds drift-aware smart pipelines
+      into Kafka topics; DataStage runs batch/ELT (via a remote engine) into watsonx.data Iceberg; Flink does
+      the sub-minute in-stream compute. A unified watsonx.data integration control plane gives shared
+      observability, quality, and lineage across all three. <sup>[8][9]</sup></p>
+      <figure>
+        <svg viewBox="0 0 900 300" role="img" aria-label="StreamSets DataStage ETL with stream processing">
+          <defs><marker id="ucI" markerWidth="10" markerHeight="10" refX="8" refY="5" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="var(--fg-muted)"/></marker></defs>
+          <!-- sources -->
+          <rect x="20" y="110" width="140" height="80" rx="6" fill="var(--bg-elev)" stroke="var(--accent-2)" stroke-width="2"/><text x="90" y="144" text-anchor="middle" fill="var(--fg)" font-size="12">sources</text><text x="90" y="162" text-anchor="middle" fill="var(--fg-muted)" font-size="10">DBs · files · apps</text>
+          <!-- streamsets -->
+          <rect x="200" y="30" width="170" height="64" rx="6" fill="var(--bg-elev)" stroke="var(--gov)" stroke-width="2"/><text x="285" y="56" text-anchor="middle" fill="var(--fg)" font-size="12">StreamSets</text><text x="285" y="74" text-anchor="middle" fill="var(--fg-muted)" font-size="10">drift-aware pipelines</text>
+          <!-- datastage -->
+          <rect x="200" y="200" width="170" height="64" rx="6" fill="var(--bg-elev)" stroke="var(--gov)" stroke-width="2"/><text x="285" y="226" text-anchor="middle" fill="var(--fg)" font-size="12">DataStage</text><text x="285" y="244" text-anchor="middle" fill="var(--fg-muted)" font-size="10">batch/ELT · remote engine</text>
+          <!-- kafka + flink -->
+          <rect x="420" y="40" width="170" height="80" rx="6" fill="var(--bg-elev)" stroke="var(--kafka)" stroke-width="2.5"/><text x="505" y="72" text-anchor="middle" fill="var(--kafka)" font-size="12" font-weight="700">Kafka + Flink</text><text x="505" y="92" text-anchor="middle" fill="var(--fg-muted)" font-size="10">in-stream compute</text>
+          <!-- iceberg -->
+          <rect x="420" y="180" width="170" height="80" rx="6" fill="var(--bg-elev)" stroke="var(--lake)" stroke-width="2"/><text x="505" y="212" text-anchor="middle" fill="var(--fg)" font-size="12">watsonx.data</text><text x="505" y="232" text-anchor="middle" fill="var(--fg-muted)" font-size="10">Iceberg tables</text>
+          <!-- control plane -->
+          <rect x="640" y="100" width="200" height="100" rx="6" fill="var(--bg-elev)" stroke="var(--ai)" stroke-width="2.5"/><text x="740" y="136" text-anchor="middle" fill="var(--fg)" font-size="12" font-weight="700">integration</text><text x="740" y="154" text-anchor="middle" fill="var(--fg)" font-size="12">control plane</text><text x="740" y="174" text-anchor="middle" fill="var(--fg-muted)" font-size="10">observability · quality · lineage</text>
+          <!-- arrows -->
+          <line x1="160" y1="130" x2="198" y2="70" stroke="var(--fg-muted)" stroke-width="2" marker-end="url(#ucI)"/>
+          <line x1="160" y1="170" x2="198" y2="226" stroke="var(--fg-muted)" stroke-width="2" marker-end="url(#ucI)"/>
+          <line x1="370" y1="64" x2="418" y2="80" stroke="var(--fg-muted)" stroke-width="2" marker-end="url(#ucI)"/>
+          <line x1="370" y1="230" x2="418" y2="220" stroke="var(--fg-muted)" stroke-width="2" marker-end="url(#ucI)"/>
+          <line x1="505" y1="120" x2="505" y2="178" stroke="var(--fg-muted)" stroke-width="2" stroke-dasharray="4,3" marker-end="url(#ucI)"/>
+          <line x1="590" y1="80" x2="638" y2="130" stroke="var(--fg-muted)" stroke-width="2" marker-end="url(#ucI)"/>
+          <line x1="590" y1="220" x2="638" y2="170" stroke="var(--fg-muted)" stroke-width="2" marker-end="url(#ucI)"/>
+        </svg>
+        <figcaption><b>Figure 4.</b> StreamSets streams drift-aware pipelines into Kafka while DataStage lands
+        batch/ELT into watsonx.data Iceberg; Flink handles in-stream compute, and a unified integration control
+        plane provides shared observability, quality, and lineage across all paths.</figcaption>
+      </figure>
+      <div class="uc-details">
+        <span class="lbl">Key technical details</span>
+        <ul>
+          <li>Division of labor: <b>ETL tools</b> (StreamSets/DataStage) move data at rest; <b>Confluent DSP</b>
+          (Flink/ksqlDB) transforms data in motion. They are complementary, not substitutes.</li>
+          <li>StreamSets' schema-drift handling keeps pipelines running when upstream shapes change — useful for
+          feeding topics that the Schema Registry then governs.</li>
+          <li>The shared control plane is what makes the mix manageable: one place for lineage and quality
+          across stream and batch, feeding the same Iceberg substrate the watsonx.data page queries.</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="refs">
+      <h2>References</h2>
+      <ol>
+        <li>[1] IBM Support — <i>Confluent Platform for IBM Cloud Pak for Integration</i>. <a href="https://www.ibm.com/mysupport/s/topic/0TO3p000000XnprGAC/confluent-platform-for-ibm-cloud-pak-for-integration">https://www.ibm.com/mysupport/s/topic/0TO3p000000XnprGAC/confluent-platform-for-ibm-cloud-pak-for-integration</a></li>
+        <li>[2] IBM Support — <i>Download Confluent Platform for IBM Cloud Pak for Integration</i>. <a href="https://www.ibm.com/support/pages/download-confluent-platform-ibm-cloud-pak-integration">https://www.ibm.com/support/pages/download-confluent-platform-ibm-cloud-pak-integration</a></li>
+        <li>[3] Confluent Documentation — <i>IBM MQ Source Connector</i>. <a href="https://docs.confluent.io/kafka-connectors/ibmmq-source/current/overview.html">https://docs.confluent.io/kafka-connectors/ibmmq-source/current/overview.html</a></li>
+        <li>[4] Confluent Documentation — <i>IBM MQ Sink Connector</i>. <a href="https://docs.confluent.io/kafka-connectors/ibmmq-sink/current/overview.html">https://docs.confluent.io/kafka-connectors/ibmmq-sink/current/overview.html</a></li>
+        <li>[5] Confluent Documentation — <i>IBM MQ Source Connector Configuration Reference</i>. <a href="https://docs.confluent.io/kafka-connectors/ibmmq-source/current/source_connector_config.html">https://docs.confluent.io/kafka-connectors/ibmmq-source/current/source_connector_config.html</a></li>
+        <li>[6] Confluent Documentation — <i>IBM Db2 Source Connector (Cloud)</i>. <a href="https://docs.confluent.io/cloud/current/connectors/cc-ibmdb2-source.html">https://docs.confluent.io/cloud/current/connectors/cc-ibmdb2-source.html</a></li>
+        <li>[7] Confluent Documentation — <i>Oracle XStream CDC Source Connector</i>. <a href="https://docs.confluent.io/kafka-connectors/oracle-xstream-cdc-source/current/overview.html">https://docs.confluent.io/kafka-connectors/oracle-xstream-cdc-source/current/overview.html</a></li>
+        <li>[8] IBM — <i>StreamSets</i>. <a href="https://www.ibm.com/products/streamsets">https://www.ibm.com/products/streamsets</a></li>
+        <li>[9] IBM — <i>DataStage</i>. <a href="https://www.ibm.com/products/datastage">https://www.ibm.com/products/datastage</a></li>
+        <li>[10] Confluent — <i>SAP Partner Page</i>. <a href="https://www.confluent.io/partner/sap/">https://www.confluent.io/partner/sap/</a></li>
+        <li>[11] IBM — <i>Event Automation: Event Endpoint Management overview</i>. <a href="https://ibm.github.io/event-automation/eem/about/overview/">https://ibm.github.io/event-automation/eem/about/overview/</a></li>
+      </ol>
+    </div>
+  </section>
+  <section class="page" id="page-ibmz">
+    <div class="pagehead">
+      <div class="eyebrow">IBM Confluent + IBM Z</div>
+      <h1>Streaming the Mainframe</h1>
+      <p class="abstract">IBM Z carries the most valuable transactional data in the enterprise, historically
+      trapped behind batch. Confluent unlocks it through three paths: log-based CDC (IBM Data Gate for
+      Confluent, IIDR, zDIH), the certified <b>Connect on z/OS</b> runtime with IBM MQ connectors in
+      bindings mode on zIIP, and Confluent Platform running on s390x (LinuxONE) with Cluster Linking to
+      Confluent Cloud. This page covers the topology, the zIIP economics, and the exact z/OS setup details
+      (versions, EBCDIC conversion, JCL, bindings).</p>
+    </div>
+
+    <figure>
+      <svg viewBox="0 0 900 470" role="img" aria-label="Mainframe sources through CDC and connectors to Kafka with hybrid Cluster Linking">
+        <rect class="svg-bg" x="0" y="0" width="900" height="470" rx="8"/>
+        <!-- Mainframe sources -->
+        <rect x="30" y="40" width="190" height="200" rx="8" fill="none" stroke="var(--accent-2)" stroke-width="2"/>
+        <text x="125" y="64" text-anchor="middle" fill="var(--accent-2)" font-size="13" font-weight="700">IBM Z sources</text>
+        <rect x="45" y="78" width="160" height="28" rx="5" fill="var(--bg-code)" stroke="var(--border)"/><text x="125" y="97" text-anchor="middle" fill="var(--fg)" font-size="11">Db2 for z/OS</text>
+        <rect x="45" y="112" width="160" height="28" rx="5" fill="var(--bg-code)" stroke="var(--border)"/><text x="125" y="131" text-anchor="middle" fill="var(--fg)" font-size="11">VSAM</text>
+        <rect x="45" y="146" width="160" height="28" rx="5" fill="var(--bg-code)" stroke="var(--border)"/><text x="125" y="165" text-anchor="middle" fill="var(--fg)" font-size="11">IMS</text>
+        <rect x="45" y="180" width="160" height="28" rx="5" fill="var(--bg-code)" stroke="var(--border)"/><text x="125" y="199" text-anchor="middle" fill="var(--fg)" font-size="11">CICS / COBOL</text>
+        <rect x="45" y="214" width="160" height="22" rx="5" fill="var(--bg-code)" stroke="var(--border)"/><text x="125" y="230" text-anchor="middle" fill="var(--fg)" font-size="11">IBM MQ for z/OS</text>
+
+        <!-- CDC / connector layer -->
+        <rect x="270" y="40" width="220" height="200" rx="8" fill="none" stroke="var(--kafka)" stroke-width="2"/>
+        <text x="380" y="64" text-anchor="middle" fill="var(--kafka)" font-size="13" font-weight="700">CDC / connectors (zIIP)</text>
+        <rect x="285" y="78" width="190" height="30" rx="5" fill="var(--bg-code)" stroke="var(--border)"/><text x="380" y="98" text-anchor="middle" fill="var(--fg)" font-size="11">Data Gate for Confluent (Db2)</text>
+        <rect x="285" y="114" width="190" height="30" rx="5" fill="var(--bg-code)" stroke="var(--border)"/><text x="380" y="134" text-anchor="middle" fill="var(--fg)" font-size="11">IIDR / zDIH</text>
+        <rect x="285" y="150" width="190" height="30" rx="5" fill="var(--bg-code)" stroke="var(--border)"/><text x="380" y="170" text-anchor="middle" fill="var(--fg)" font-size="11">Connect on z/OS + MQ conn.</text>
+        <rect x="285" y="186" width="190" height="30" rx="5" fill="var(--bg-code)" stroke="var(--border)"/><text x="380" y="206" text-anchor="middle" fill="var(--fg)" font-size="11">CICS → MQ → Kafka</text>
+
+        <!-- Kafka -->
+        <rect x="540" y="80" width="150" height="120" rx="8" fill="var(--bg-code)" stroke="var(--kafka)" stroke-width="2.5"/>
+        <text x="615" y="130" text-anchor="middle" fill="var(--kafka)" font-size="14" font-weight="700">Kafka</text>
+        <text x="615" y="150" text-anchor="middle" fill="var(--fg-muted)" font-size="11">topics</text>
+
+        <defs>
+          <marker id="arr4" markerWidth="10" markerHeight="10" refX="8" refY="5" orient="auto">
+            <path d="M0,0 L10,5 L0,10 z" fill="var(--fg-muted)"/>
+          </marker>
+        </defs>
+        <line x1="220" y1="140" x2="266" y2="140" stroke="var(--fg-muted)" stroke-width="2" marker-end="url(#arr4)"/>
+        <line x1="490" y1="140" x2="536" y2="140" stroke="var(--fg-muted)" stroke-width="2" marker-end="url(#arr4)"/>
+
+        <!-- Hybrid topology -->
+        <rect x="30" y="280" width="400" height="160" rx="8" fill="none" stroke="var(--lake)" stroke-width="2"/>
+        <text x="230" y="304" text-anchor="middle" fill="var(--lake)" font-size="13" font-weight="700">On-prem: Confluent Platform on LinuxONE (s390x)</text>
+        <rect x="55" y="320" width="160" height="50" rx="6" fill="var(--bg-code)" stroke="var(--lake)"/>
+        <text x="135" y="342" text-anchor="middle" fill="var(--fg)" font-size="12">CP brokers</text>
+        <text x="135" y="360" text-anchor="middle" fill="var(--fg-muted)" font-size="10">Linux on Z / zCX / CFK</text>
+        <rect x="245" y="320" width="160" height="50" rx="6" fill="var(--bg-code)" stroke="var(--lake)"/>
+        <text x="325" y="342" text-anchor="middle" fill="var(--fg)" font-size="12">local processing</text>
+        <text x="325" y="360" text-anchor="middle" fill="var(--fg-muted)" font-size="10">data residency</text>
+
+        <rect x="520" y="280" width="350" height="160" rx="8" fill="none" stroke="var(--kafka)" stroke-width="2"/>
+        <text x="695" y="304" text-anchor="middle" fill="var(--kafka)" font-size="13" font-weight="700">Confluent Cloud</text>
+        <rect x="560" y="330" width="270" height="50" rx="6" fill="var(--bg-code)" stroke="var(--kafka)"/>
+        <text x="695" y="352" text-anchor="middle" fill="var(--fg)" font-size="12">cloud-native consumers + watsonx</text>
+        <text x="695" y="370" text-anchor="middle" fill="var(--fg-muted)" font-size="10">analytics / AI / agents</text>
+
+        <line x1="430" y1="360" x2="516" y2="360" stroke="var(--accent)" stroke-width="2.5" marker-end="url(#arr4)"/>
+        <text x="473" y="350" text-anchor="middle" fill="var(--accent)" font-size="10" font-weight="600">Cluster</text>
+        <text x="473" y="388" text-anchor="middle" fill="var(--accent)" font-size="10" font-weight="600">Linking</text>
+      </svg>
+      <figcaption><b>Figure 1.</b> Mainframe sources reach Kafka via zIIP-eligible CDC and connectors
+      (Data Gate, IIDR/zDIH, Connect on z/OS, CICS→MQ). For a hybrid posture, Confluent Platform runs
+      on LinuxONE (s390x) for data residency and mirrors to Confluent Cloud via Cluster Linking.</figcaption>
+    </figure>
+
+    <h2>Path 1 — Log-based CDC from Db2 for z/OS</h2>
+    <p><b>IBM Data Gate for Confluent</b> (GA 2026-06-12) is the native, Confluent-first path: it captures
+    changes from Db2 for z/OS using <b>log-based</b> CDC, delivers them through native Kafka Connect, and
+    supports both initial snapshot and continuous streaming. The headline efficiency number for SEs:</p>
+    <div class="callout note">
+      <span class="ct">zIIP economics</span>
+      IBM Data Gate for Confluent is <b>up to 96% zIIP-eligible</b>. Because eligible Java workloads on the
+      zIIP specialty engine are not counted toward general-purpose CP (and thus not chargeable under MSU-based
+      licensing), pushing CDC onto zIIP is what makes continuous mainframe streaming economically viable
+      versus batch extracts. IIDR and zDIH are the alternative CDC routes; CICS→MQ→Kafka is the pattern when
+      the system of record only emits through MQ.
+    </div>
+
+    <h2>Path 2 — Connect on z/OS with IBM MQ connectors</h2>
+    <p>Confluent ships a <b>certified Kafka Connect runtime for z/OS</b> that runs in z/OS UNIX System
+    Services (USS) under Bash, with zIIP offload. Current verified coordinates:</p>
+    <div class="table-wrap"><table>
+      <thead><tr><th>Component</th><th>Version / value</th></tr></thead>
+      <tbody>
+        <tr><td>Connect on z/OS</td><td><b>v8.1.0</b> (Confluent Platform 8.1.0, Apache Kafka 4.1.0; released 2025-10-15)</td></tr>
+        <tr><td>IBM MQ Source for z/OS</td><td><b>12.1.1</b></td></tr>
+        <tr><td>IBM MQ Sink for z/OS</td><td><b>2.1.2</b></td></tr>
+        <tr><td>Certified z/OS</td><td><b>V2R4</b></td></tr>
+        <tr><td>Distribution</td><td><code>https://packages.confluent.io/archive/8.1/confluent-connect-8.1.0-zOS.tar.gz</code></td></tr>
+        <tr><td>Ports</td><td>8082 (distributed mode) / 8083 (standalone mode)</td></tr>
+        <tr><td>MQ connection mode</td><td><b>bindings mode</b> (default) — more secure, avoids the CHINIT networking path</td></tr>
+        <tr><td>Prereqs</td><td>USS + Bash + zIIP</td></tr>
+      </tbody>
+    </table></div>
+
+    <h3>EBCDIC: the property and log files must be IBM-1047</h3>
+    <p>z/OS is an EBCDIC platform. The properties files you author (often in ASCII/ISO8859-1) must be
+    transcoded to <b>IBM-1047</b> before Connect can read them:</p>
+    <div class="pre-label">USS — transcode a properties file ASCII → EBCDIC (IBM-1047)</div>
+    <pre><code>iconv -f ISO8859-1 -t IBM-1047 ./connect-standalone.properties > connect-standalone2.properties</code></pre>
+    <p>The Log4j2 console appender must also be told to emit IBM-1047, or your logs are mojibake:</p>
+    <div class="pre-label">connect-log4j2.yaml — Console appender PatternLayout</div>
+    <pre><code>charset: "IBM-1047"</code></pre>
+
+    <h3>JCL: redirect Connect stdout to a USS text file</h3>
+    <p>When launching Connect from JCL, redirect stdout to a USS path with <code>FILEDATA=TEXT</code> so the
+    bytes are treated as text (and newline-converted) rather than binary:</p>
+    <div class="pre-label">JCL — STDOUT redirect to USS</div>
+    <pre><code>//STDOUT DD PATH='/u/kafconn/logs/kafconnect.out',
+//          PATHOPTS=(OWRONLY,OCREAT,OAPPEND),
+//          PATHMODE=(SIRWXU),
+//          FILEDATA=TEXT</code></pre>
+
+    <h3>Bindings mode: point LIBPATH at the MQ client library</h3>
+    <p>Bindings mode talks to the local queue manager through native libraries instead of TCP/CHINIT. Export
+    the library path, then launch standalone Connect with the connector properties:</p>
+    <div class="pre-label">USS — bindings mode launch</div>
+    <pre><code>export LIBPATH=$LIBPATH:&lt;path_to_client_library&gt;
+./bin/connect-standalone.sh ./config/connect-standalone.properties ./ibmmqconnector.properties</code></pre>
+
+    <div class="callout warn">
+      <span class="ct">Gotchas — z/OS Connect</span>
+      <ul>
+        <li><b>Bindings vs client mode:</b> bindings is the default and preferred — it avoids the CHINIT
+        address space and its networking cost, and is more secure. Use client mode only when Connect and the
+        queue manager are on different LPARs/hosts.</li>
+        <li><b>Every text artifact is EBCDIC:</b> properties, log config, and JCL-written files. A single
+        un-transcoded properties file produces silent parse failures.</li>
+        <li><b>zIIP is a prerequisite, not just an optimization</b> for cost-effective operation — confirm
+        zIIP capacity before sizing.</li>
+      </ul>
+    </div>
+
+    <h2>Path 3 — Confluent Platform on s390x + hybrid Cluster Linking</h2>
+    <p>Confluent Platform is supported on <b>s390x</b> (Linux on IBM Z / LinuxONE, including zCX), deployable
+    via Confluent for Kubernetes (CFK). This keeps brokers and processing physically next to the mainframe
+    for <b>data residency</b> and lowest-latency capture. To extend to cloud-native consumers (watsonx
+    analytics, AI, agents), <b>Cluster Linking</b> mirrors topics from the on-prem Confluent Platform cluster
+    to Confluent Cloud over a single byte-for-byte replication link — no Connect cluster, offsets preserved.</p>
+    <div class="callout note">
+      <span class="ct">Topology decision</span>
+      Use on-prem CP on LinuxONE when regulation or latency demands the streaming substrate stay next to Z;
+      use Cluster Linking (not MirrorMaker, not a Connect bridge) to project a curated subset of topics to
+      the cloud. Keep the sensitive topics local and link only what downstream cloud workloads need —
+      Cluster Linking is topic-granular, so it doubles as a data-egress control point.
+    </div>
+
+    <h2>Real-world use cases</h2>
+    <p class="uc-intro">Three mainframe patterns, from newest to most battle-tested: log-based Db2 z/OS CDC
+    into real-time fraud scoring via Data Gate, a forward-cache offload that takes read load off the mainframe,
+    and the decoupling pattern that large banks have run in production for years.</p>
+
+    <div class="usecase">
+      <h3><span class="uc-num">UC 1</span> Real-time Db2 z/OS fraud detection via Data Gate</h3>
+      <div class="uc-tags"><span class="tag">Data Gate</span><span class="tag">log-based CDC</span><span class="tag">zIIP</span></div>
+      <p class="uc-scenario">Fraud decisions must happen on live mainframe transactions, not yesterday's batch
+      extract. IBM Data Gate for Confluent captures changes from Db2 for z/OS with log-based CDC (snapshot +
+      continuous), streams them through native Kafka Connect into Confluent Platform, where Flink/ksqlDB scores
+      each event and emits an alert stream — while every scored event also sinks to the lakehouse for
+      retraining. <sup>[3][4]</sup></p>
+      <figure>
+        <svg viewBox="0 0 900 280" role="img" aria-label="Db2 zOS fraud detection via Data Gate">
+          <defs><marker id="ucJ" markerWidth="10" markerHeight="10" refX="8" refY="5" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="var(--fg-muted)"/></marker></defs>
+          <!-- db2 -->
+          <rect x="20" y="100" width="150" height="80" rx="6" fill="var(--bg-elev)" stroke="var(--accent-2)" stroke-width="2"/><text x="95" y="134" text-anchor="middle" fill="var(--fg)" font-size="12">Db2 for z/OS</text><text x="95" y="154" text-anchor="middle" fill="var(--fg-muted)" font-size="10">transaction logs</text>
+          <!-- data gate -->
+          <rect x="210" y="100" width="170" height="80" rx="6" fill="var(--bg-elev)" stroke="var(--gov)" stroke-width="2.5"/><text x="295" y="128" text-anchor="middle" fill="var(--gov)" font-size="12" font-weight="700">Data Gate</text><text x="295" y="148" text-anchor="middle" fill="var(--fg-muted)" font-size="10">log-based CDC</text><text x="295" y="164" text-anchor="middle" fill="var(--fg-muted)" font-size="10">≤96% zIIP-eligible</text>
+          <!-- kafka -->
+          <rect x="420" y="100" width="160" height="80" rx="6" fill="var(--bg-elev)" stroke="var(--kafka)" stroke-width="2.5"/><text x="500" y="128" text-anchor="middle" fill="var(--kafka)" font-size="12" font-weight="700">Confluent Platform</text><text x="500" y="148" text-anchor="middle" fill="var(--fg-muted)" font-size="10">Kafka topic</text><text x="500" y="164" text-anchor="middle" fill="var(--fg-muted)" font-size="10">native Connect</text>
+          <!-- flink scoring -->
+          <rect x="620" y="40" width="160" height="64" rx="6" fill="var(--bg-elev)" stroke="var(--kafka)" stroke-width="2"/><text x="700" y="66" text-anchor="middle" fill="var(--fg)" font-size="12">Flink / ksqlDB</text><text x="700" y="84" text-anchor="middle" fill="var(--fg-muted)" font-size="10">scoring → alert topic</text>
+          <!-- lakehouse -->
+          <rect x="620" y="176" width="160" height="64" rx="6" fill="var(--bg-elev)" stroke="var(--lake)" stroke-width="2"/><text x="700" y="204" text-anchor="middle" fill="var(--fg)" font-size="12">watsonx.data</text><text x="700" y="222" text-anchor="middle" fill="var(--fg-muted)" font-size="10">sink → retrain</text>
+          <!-- arrows -->
+          <line x1="170" y1="140" x2="206" y2="140" stroke="var(--fg-muted)" stroke-width="2" marker-end="url(#ucJ)"/>
+          <line x1="380" y1="140" x2="416" y2="140" stroke="var(--fg-muted)" stroke-width="2" marker-end="url(#ucJ)"/>
+          <line x1="580" y1="120" x2="618" y2="80" stroke="var(--fg-muted)" stroke-width="2" marker-end="url(#ucJ)"/>
+          <line x1="580" y1="160" x2="618" y2="200" stroke="var(--fg-muted)" stroke-width="2" marker-end="url(#ucJ)"/>
+        </svg>
+        <figcaption><b>Figure 2.</b> Data Gate captures Db2 z/OS changes via log-based CDC (up to 96%
+        zIIP-eligible) and streams them through native Kafka Connect into Confluent Platform; Flink/ksqlDB
+        scores each event onto an alert topic while all scored events sink to the lakehouse for retraining.</figcaption>
+      </figure>
+      <div class="uc-details">
+        <span class="lbl">Key technical details</span>
+        <ul>
+          <li>Log-based capture means <b>minimal impact</b> on core transactional workloads — no triggers, no
+          polling against the live tables.</li>
+          <li>Up to <b>96% of Data Gate processing is zIIP-eligible</b>, which keeps general-purpose CP
+          consumption (and software bill) low at high throughput.</li>
+          <li>Snapshot + continuous streaming lets you onboard the existing dataset once and then stay
+          continuously synchronized — the alert path and the lakehouse retraining path share one stream.</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="usecase">
+      <h3><span class="uc-num">UC 2</span> Mainframe offload with a real-time forward cache</h3>
+      <div class="uc-tags"><span class="tag">forward cache</span><span class="tag">cost offload</span><span class="tag">MQ / CDC</span></div>
+      <p class="uc-scenario">Customer-facing apps hammering the mainframe for reads drive up MIPS cost and
+      latency. Streaming back-end changes (via MQ Source or CDC) through Confluent Platform into a near-real-time
+      <b>forward cache</b> lets consumer apps read the materialized view instead of the mainframe — Alight
+      Solutions used exactly this pattern to cut mainframe cost and accelerate delivery. <sup>[2]</sup></p>
+      <figure>
+        <svg viewBox="0 0 900 240" role="img" aria-label="Mainframe offload forward cache">
+          <defs><marker id="ucK" markerWidth="10" markerHeight="10" refX="8" refY="5" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="var(--fg-muted)"/></marker></defs>
+          <!-- mainframe -->
+          <rect x="20" y="80" width="160" height="80" rx="6" fill="var(--bg-elev)" stroke="var(--accent-2)" stroke-width="2"/><text x="100" y="114" text-anchor="middle" fill="var(--fg)" font-size="12">back-end systems</text><text x="100" y="134" text-anchor="middle" fill="var(--fg-muted)" font-size="10">mainframe of record</text>
+          <!-- confluent -->
+          <rect x="240" y="80" width="180" height="80" rx="6" fill="var(--bg-elev)" stroke="var(--kafka)" stroke-width="2.5"/><text x="330" y="108" text-anchor="middle" fill="var(--kafka)" font-size="12" font-weight="700">Confluent Platform</text><text x="330" y="128" text-anchor="middle" fill="var(--fg-muted)" font-size="10">MQ Source / CDC</text><text x="330" y="144" text-anchor="middle" fill="var(--fg-muted)" font-size="10">pipelines</text>
+          <!-- cache -->
+          <rect x="480" y="80" width="180" height="80" rx="6" fill="var(--bg-elev)" stroke="var(--lake)" stroke-width="2.5"/><text x="570" y="108" text-anchor="middle" fill="var(--fg)" font-size="12" font-weight="700">forward cache</text><text x="570" y="128" text-anchor="middle" fill="var(--fg-muted)" font-size="10">near-real-time</text><text x="570" y="144" text-anchor="middle" fill="var(--fg-muted)" font-size="10">materialized view</text>
+          <!-- consumers -->
+          <rect x="720" y="80" width="160" height="80" rx="6" fill="var(--bg-elev)" stroke="var(--accent)" stroke-width="2"/><text x="800" y="114" text-anchor="middle" fill="var(--fg)" font-size="12">consumer apps</text><text x="800" y="134" text-anchor="middle" fill="var(--fg-muted)" font-size="10">read cache, not MF</text>
+          <!-- arrows -->
+          <line x1="180" y1="120" x2="236" y2="120" stroke="var(--fg-muted)" stroke-width="2" marker-end="url(#ucK)"/>
+          <line x1="420" y1="120" x2="476" y2="120" stroke="var(--fg-muted)" stroke-width="2" marker-end="url(#ucK)"/>
+          <line x1="660" y1="120" x2="716" y2="120" stroke="var(--fg-muted)" stroke-width="2" marker-end="url(#ucK)"/>
+        </svg>
+        <figcaption><b>Figure 3.</b> Back-end/mainframe changes stream through Confluent Platform into a
+        near-real-time forward cache; consumer apps read the materialized view rather than hitting the mainframe,
+        cutting MIPS cost and read latency.</figcaption>
+      </figure>
+      <div class="outcome">
+        <div class="metric"><span class="v">↓ MIPS</span><span class="l">reduced mainframe cost (Alight)</span></div>
+        <div class="metric"><span class="v">Faster</span><span class="l">accelerated solution delivery</span></div>
+        <div class="metric"><span class="v">Reusable</span><span class="l">platform for future expansion</span></div>
+      </div>
+      <div class="uc-details">
+        <span class="lbl">Key technical details</span>
+        <ul>
+          <li>The cache is a <b>read offload</b>, not a system of record — the mainframe stays authoritative;
+          only the read traffic moves.</li>
+          <li>Because many consumers read the same cache, you decouple consumer scaling from mainframe capacity
+          — adding apps no longer adds mainframe load.</li>
+          <li>The same Confluent pipelines that feed the cache can fan out to analytics and AI, so the offload
+          investment doubles as the ingestion layer for the rest of the architecture.</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="usecase">
+      <h3><span class="uc-num">UC 3</span> System decoupling for digital transformation (RBC, KeyBank)</h3>
+      <div class="uc-tags"><span class="tag">decoupling</span><span class="tag">event-driven</span><span class="tag">reuse</span></div>
+      <p class="uc-scenario">Large banks use Confluent Platform as the decoupling layer between the mainframe and
+      new digital products. RBC wrote a microservice that serves reads off Confluent (reducing mainframe reads
+      and OpEx) and dropped anomaly detection from weeks to seconds; KeyBank built a streaming center of
+      excellence to decouple systems and reuse data, cutting time-to-market roughly in half. <sup>[2]</sup></p>
+      <figure>
+        <svg viewBox="0 0 900 240" role="img" aria-label="System decoupling for digital transformation">
+          <defs><marker id="ucL" markerWidth="10" markerHeight="10" refX="8" refY="5" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="var(--fg-muted)"/></marker></defs>
+          <!-- core -->
+          <rect x="20" y="80" width="150" height="80" rx="6" fill="var(--bg-elev)" stroke="var(--accent-2)" stroke-width="2"/><text x="95" y="114" text-anchor="middle" fill="var(--fg)" font-size="12">core / mainframe</text><text x="95" y="134" text-anchor="middle" fill="var(--fg-muted)" font-size="10">business logic</text>
+          <!-- confluent backbone -->
+          <rect x="230" y="80" width="180" height="80" rx="6" fill="var(--bg-elev)" stroke="var(--kafka)" stroke-width="2.5"/><text x="320" y="108" text-anchor="middle" fill="var(--kafka)" font-size="12" font-weight="700">Confluent Platform</text><text x="320" y="128" text-anchor="middle" fill="var(--fg-muted)" font-size="10">decoupling backbone</text><text x="320" y="144" text-anchor="middle" fill="var(--fg-muted)" font-size="10">reusable event streams</text>
+          <!-- microservice -->
+          <rect x="470" y="30" width="190" height="64" rx="6" fill="var(--bg-elev)" stroke="var(--accent)" stroke-width="2"/><text x="565" y="56" text-anchor="middle" fill="var(--fg)" font-size="12">read microservice</text><text x="565" y="74" text-anchor="middle" fill="var(--fg-muted)" font-size="10">serves reads (RBC)</text>
+          <!-- digital products -->
+          <rect x="470" y="146" width="190" height="64" rx="6" fill="var(--bg-elev)" stroke="var(--ai)" stroke-width="2"/><text x="565" y="172" text-anchor="middle" fill="var(--fg)" font-size="12">digital products</text><text x="565" y="190" text-anchor="middle" fill="var(--fg-muted)" font-size="10">new apps (KeyBank)</text>
+          <!-- reuse -->
+          <rect x="710" y="80" width="170" height="80" rx="6" fill="var(--bg-elev)" stroke="var(--lake)" stroke-width="2"/><text x="795" y="114" text-anchor="middle" fill="var(--fg)" font-size="12">data reuse</text><text x="795" y="134" text-anchor="middle" fill="var(--fg-muted)" font-size="10">across teams</text>
+          <!-- arrows -->
+          <line x1="170" y1="120" x2="226" y2="120" stroke="var(--fg-muted)" stroke-width="2" marker-end="url(#ucL)"/>
+          <line x1="410" y1="105" x2="468" y2="70" stroke="var(--fg-muted)" stroke-width="2" marker-end="url(#ucL)"/>
+          <line x1="410" y1="135" x2="468" y2="172" stroke="var(--fg-muted)" stroke-width="2" marker-end="url(#ucL)"/>
+          <line x1="660" y1="70" x2="708" y2="105" stroke="var(--fg-muted)" stroke-width="2" marker-end="url(#ucL)"/>
+          <line x1="660" y1="172" x2="708" y2="135" stroke="var(--fg-muted)" stroke-width="2" marker-end="url(#ucL)"/>
+        </svg>
+        <figcaption><b>Figure 4.</b> Confluent Platform sits between the core/mainframe and new digital products
+        as a decoupling backbone of reusable event streams — feeding read microservices, new digital apps, and
+        cross-team data reuse.</figcaption>
+      </figure>
+      <div class="outcome">
+        <div class="metric"><span class="v">weeks → sec</span><span class="l">RBC anomaly detection</span></div>
+        <div class="metric"><span class="v">↓ OpEx</span><span class="l">fewer mainframe reads (RBC)</span></div>
+        <div class="metric"><span class="v">~50%</span><span class="l">KeyBank time-to-market cut</span></div>
+      </div>
+      <div class="uc-details">
+        <span class="lbl">Key technical details</span>
+        <ul>
+          <li>The pattern is <b>strangler-fig</b>: new functionality consumes events rather than calling the
+          mainframe directly, so the core can be modernized incrementally without a big-bang rewrite.</li>
+          <li>Event reuse is the multiplier — one published stream serves many consumers, which is why
+          time-to-market drops as the event catalog grows.</li>
+          <li>Staying on the same event-based architecture keeps the bank compliant with existing business logic
+          while opening new digital channels.</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="refs">
+      <h2>References</h2>
+      <ol>
+        <li>[1] Confluent Documentation — <i>Connect on z/OS for Confluent Platform</i>. <a href="https://docs.confluent.io/platform/current/connect/connect-zos.html">https://docs.confluent.io/platform/current/connect/connect-zos.html</a></li>
+        <li>[2] Confluent — <i>Modernize Your Mainframe With Confluent on IBM zSystems</i>. <a href="https://www.confluent.io/blog/modernize-mainframe-with-confluent-on-ibm-zsystems/">https://www.confluent.io/blog/modernize-mainframe-with-confluent-on-ibm-zsystems/</a></li>
+        <li>[3] IBM — <i>IBM Data Gate for Confluent: Turning Z data into real-time action</i>. <a href="https://www.ibm.com/new/announcements/ibm-data-gate-for-confluent-turning-z-data-into-real-time-action">https://www.ibm.com/new/announcements/ibm-data-gate-for-confluent-turning-z-data-into-real-time-action</a></li>
+        <li>[4] IBM — <i>IBM Data Gate</i>. <a href="https://www.ibm.com/products/data-gate">https://www.ibm.com/products/data-gate</a></li>
+        <li>[5] IBM Support — <i>IBM Confluent Platform for Z and LinuxONE</i>. <a href="https://www.ibm.com/support/pages/ibm-confluent-platform-z-and-linuxone82x">https://www.ibm.com/support/pages/ibm-confluent-platform-z-and-linuxone82x</a></li>
+        <li>[6] IBM Community — <i>Confluent on IBM Z</i>. <a href="https://community.ibm.com/community/user/blogs/anderson-marcelo-pedrassa/2026/06/18/confluent-on-ibm-z">https://community.ibm.com/community/user/blogs/anderson-marcelo-pedrassa/2026/06/18/confluent-on-ibm-z</a></li>
+        <li>[7] IBM — <i>z Integrated Information Processor (zIIP)</i>. <a href="https://www.ibm.com/products/z-integrated-information-processor">https://www.ibm.com/products/z-integrated-information-processor</a></li>
+        <li>[8] Confluent Documentation — <i>Cluster Linking</i>. <a href="https://docs.confluent.io/platform/current/multi-dc-deployments/cluster-linking/index.html">https://docs.confluent.io/platform/current/multi-dc-deployments/cluster-linking/index.html</a></li>
+        <li>[9] Confluent Documentation — <i>Cluster Linking hybrid cloud</i>. <a href="https://docs.confluent.io/cloud/current/multi-cloud/cluster-linking/hybrid-cc.html">https://docs.confluent.io/cloud/current/multi-cloud/cluster-linking/hybrid-cc.html</a></li>
+        <li>[10] Confluent Hub — <i>IBM MQ Source Connector for z/OS</i>. <a href="https://www.confluent.io/hub/confluentinc/kafka-connect-ibmmq-zos">https://www.confluent.io/hub/confluentinc/kafka-connect-ibmmq-zos</a></li>
+        <li>[11] Confluent Hub — <i>IBM MQ Sink Connector for z/OS</i>. <a href="https://www.confluent.io/hub/confluentinc/kafka-connect-ibmmq-zos-sink">https://www.confluent.io/hub/confluentinc/kafka-connect-ibmmq-zos-sink</a></li>
+      </ol>
+    </div>
+  </section>
+</main>
+<script>
+(function () {
+  var routes = ["overview", "watsonxdata", "integration", "ibmz"];
+  function show(route) {
+    if (routes.indexOf(route) === -1) route = "overview";
+    routes.forEach(function (r) {
+      document.getElementById("page-" + r).classList.toggle("active", r === route);
+    });
+    document.querySelectorAll("#nav a").forEach(function (a) {
+      a.classList.toggle("active", a.getAttribute("data-route") === route);
+    });
+    window.scrollTo(0, 0);
+  }
+  function current() { return (location.hash || "#overview").replace("#", ""); }
+  window.addEventListener("hashchange", function () { show(current()); });
+  // Theme
+  var saved = localStorage.getItem("theme");
+  if (saved) document.documentElement.setAttribute("data-theme", saved);
+  document.getElementById("themeBtn").addEventListener("click", function () {
+    var cur = document.documentElement.getAttribute("data-theme");
+    var next = cur === "dark" ? "light" : "dark";
+    document.documentElement.setAttribute("data-theme", next);
+    localStorage.setItem("theme", next);
+  });
+  show(current());
+})();
+</script>
+</body>
+</html>
