@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Confluent × IBM — SE Technical Integration Field Guide</title>
+<title>Confluent × IBM: a technical walkthrough of how the stacks fit together</title>
 <style>
 :root{
   --bg:#fbfbfa; --bg-card:#ffffff; --bg-soft:#f4f5f7; --bg-code:#f6f8fa;
@@ -152,7 +152,7 @@ hr.soft{border:none;border-top:1px solid var(--border);margin:34px 0}
 <body>
 <header class="nav">
   <div class="nav-inner">
-    <div class="brand">Confluent <span class="x">×</span> IBM<small>SE technical integration field guide</small></div>
+    <div class="brand">Confluent <span class="x">×</span> IBM<small>how the stacks fit together, engineer to engineer</small></div>
     <nav class="tabs" id="tabs">
       <a href="#overview" data-route="overview">Overview</a>
       <a href="#watsonx" data-route="watsonx">watsonx.data</a>
@@ -168,20 +168,20 @@ hr.soft{border:none;border-top:1px solid var(--border);margin:34px 0}
 <section class="page" id="page-overview">
   <div class="pagehead">
     <div class="kicker">Overview</div>
-    <h1>Confluent × IBM: the technical integration, end to end</h1>
+    <h1>Confluent × IBM: how it all actually fits together</h1>
   </div>
 
-  <p class="lede">IBM closed its acquisition of Confluent on <strong>17 March 2026</strong> (~$11B, $31/share). This guide is the SE-to-SE version: where the two stacks actually bolt together, the configs that matter, and the places the seams still show. No pitch — just the wiring.</p>
+  <p class="lede">IBM closed the Confluent acquisition on <strong>17 March 2026</strong> (~$11B, $31/share). I wrote this for the engineers who have to actually understand what changed, whether you're selling it, deploying it, or building on top of it. So this is the engineer-to-engineer version: where the two stacks really bolt together, which configs you'll actually type, and the places the integration still makes you sweat. No pitch. Just the wiring.</p>
 
-  <p>If you already sell or deploy Kafka and Flink, the mental shift is small. Confluent stays what it is — the real-time substrate. What changes is everything <em>downstream and around</em> it: a governed lakehouse (watsonx.data), an agent/reasoning layer (watsonx.ai + Orchestrate), governance and lineage spanning the whole thing, and first-class paths off the mainframe. IBM's own framing for the deal is deliberately additive: "connect, process and govern real-time data for applications and AI agents."</p>
+  <p>Here's the good news if you already live in Kafka and Flink: you don't have to relearn much. Confluent is still Confluent, the real-time substrate underneath everything. What's new is the stuff around it. You get a governed lakehouse (watsonx.data), a reasoning and agent layer on top (watsonx.ai + Orchestrate), governance and lineage that reach across the whole thing, and proper paths off the mainframe. IBM keeps describing the deal as additive, and I think that's the honest read: "connect, process and govern real-time data for applications and AI agents."</p>
 
   <div class="callout note">
-    <span class="lbl">Independent read</span>
-    <p>Forrester's take (Mar 2026): IBM paid for a real-time data substrate <em>for AI agents</em>, not for Kafka as a product line. The structural tell — unlike the Red Hat acquisition, Confluent is <strong>not</strong> being run as an arm's-length independent unit. It's being woven into watsonx, hybrid integration, and Z. For you that means the integration points below are the strategy, not afterthoughts.</p>
+    <span class="lbl">Why you should care</span>
+    <p>This isn't a logo on a slide. IBM is wiring Confluent straight into watsonx, into hybrid integration, into Z. The streaming layer is the center of their real-time AI story, not a bolt-on. So when a customer asks where this is going, the integration points in this guide <em>are</em> the answer. Learn them.</p>
   </div>
 
-  <h2>The three-layer model</h2>
-  <p>Almost every IBM+Confluent architecture you'll draw collapses to three layers plus a governance spine. Internalize this and the four pillar pages stop feeling like separate products.</p>
+  <h2>The three-layer model (learn this one mental picture)</h2>
+  <p>If you take one thing from this guide, take this. Nearly every IBM + Confluent architecture you'll ever whiteboard collapses into three layers and a governance spine running down the side. Once that picture is in your head, the pillar pages stop looking like four unrelated products and start looking like one stack.</p>
 
   <figure>
     <div class="excalidraw" id="fig1"></div>
@@ -189,55 +189,55 @@ hr.soft{border:none;border-top:1px solid var(--border);margin:34px 0}
   </figure>
 
   <ol>
-    <li><strong>Nervous system — Confluent.</strong> Kafka is the durable event log; Flink does the sub-second processing; Connectors + Tableflow get data in and out. This is where "now" lives.</li>
-    <li><strong>Data foundation — IBM watsonx.data.</strong> An open lakehouse: Iceberg + Parquet tables, queried by Presto (C++/Velox) and Spark, with Milvus alongside for vectors. This is where "everything, organized and governed" lives.</li>
-    <li><strong>Reason &amp; act — watsonx.ai + watsonx Orchestrate.</strong> Granite models and RAG for reasoning; Orchestrate for multi-step agentic workflows with human-in-the-loop and MCP tool calls.</li>
+    <li><strong>Nervous system (Confluent).</strong> Kafka is the durable event log, Flink does the sub-second processing, and Connectors plus Tableflow move data in and out. Think of this as the layer where "now" lives.</li>
+    <li><strong>Data foundation (IBM watsonx.data).</strong> An open lakehouse: Iceberg and Parquet tables, queried by Presto (C++/Velox) and Spark, with Milvus sitting alongside for vectors. This is where "everything, organized and governed" lives.</li>
+    <li><strong>Reason and act (watsonx.ai + watsonx Orchestrate).</strong> Granite models and RAG do the thinking. Orchestrate runs the multi-step agent workflows, with a human in the loop and MCP tool calls when you need them.</li>
   </ol>
-  <p>Spanning all three: <strong>watsonx.governance</strong> and <strong>watsonx.data intelligence</strong> (lineage). Governance that only covers the lake but not the streams feeding it is theater — the point of the spine is that it reaches into the event layer too.</p>
+  <p>Running down the side of all three is the governance spine: <strong>watsonx.governance</strong> plus <strong>watsonx.data intelligence</strong> for lineage. Here's the point people miss. Governing the lake but not the streams that feed it is governing half the system. The spine has to reach back into the event layer, or it isn't really governance.</p>
 
   <h2>When to use what</h2>
-  <p>The single most useful thing you can give a customer is a clean decision rule for which layer owns a workload. Here's the one that holds up:</p>
+  <p>The question every customer eventually asks is "okay, but which layer owns this workload?" The most useful thing you can hand them is a clean rule for answering that without a two-hour debate. This is the one I keep coming back to, and it holds up:</p>
   <div class="tablewrap">
   <table>
     <thead><tr><th>If the workload is…</th><th>It belongs to…</th><th>Why</th></tr></thead>
     <tbody>
       <tr><td>Sub-minute real-time context, stream processing, event distribution</td><td>Confluent / Flink</td><td>Latency and replay are first-class; Flink does stateful processing in motion</td></tr>
-      <tr><td>Multi-step business workflow, human-in-the-loop, tool/agent orchestration</td><td>watsonx Orchestrate</td><td>Durable, supervised, long-running — not a stream job</td></tr>
+      <tr><td>Multi-step business workflow, human-in-the-loop, tool/agent orchestration</td><td>watsonx Orchestrate</td><td>Durable, supervised, long-running, not a stream job</td></tr>
       <tr><td>Historical / at-rest analytics, federated SQL, AI training data</td><td>watsonx.data lakehouse</td><td>Open tables, cost-efficient engines, governed once</td></tr>
     </tbody>
   </table>
   </div>
-  <p>Most real designs use all three and the interesting work is the handoffs — which is exactly what the watsonx.data page is about (Tableflow is the handoff from layer 1 to layer 2).</p>
+  <p>In practice almost every real design uses all three, and the fun part, the part where you earn your keep, is the handoffs between them. That's the whole subject of the watsonx.data page, because Tableflow is the handoff from layer 1 to layer 2.</p>
 
-  <h2>Shared open standards = less lock-in</h2>
-  <p>The integration leans on formats both companies already standardized on, which is what makes the handoffs cheap: <strong>Apache Kafka</strong>, <strong>Apache Flink</strong>, <strong>Apache Iceberg</strong>, <strong>Apache Parquet</strong>, <strong>Presto</strong>, and <strong>MCP</strong> (Model Context Protocol) for tool/agent wiring. When a customer worries about lock-in, this is the honest answer: the table format and the streaming engine are open; the value-add is the managed surfaces around them.</p>
+  <h2>Shared open standards mean less lock-in</h2>
+  <p>The reason these handoffs are cheap is that both companies already bet on the same open formats: Apache Kafka, Apache Flink, Apache Iceberg, Apache Parquet, Presto, and MCP (Model Context Protocol) for wiring up tools and agents. So when a customer gets nervous about lock-in, you have a straight answer for them. The streaming engine and the table format are open standards. What you're paying IBM and Confluent for is the managed surface around them, not a cage you can't leave.</p>
 
-  <h2>What's GA vs. preview (be precise with customers)</h2>
+  <h2>What's GA vs. preview (please be precise about this)</h2>
+  <p>This is the line that gets people in trouble. Mix up shipped and roadmap in front of a customer and you'll spend the next call walking it back, so keep these two buckets straight.</p>
   <ul>
-    <li><strong>GA:</strong> Confluent + Tableflow + Flink integrations with watsonx.data (announced at Think, 5 May 2026); the IBM MQ connectors; Confluent Platform certified on Linux on Z / s390x; IBM Confluent Platform as a product (standalone and as a CP4I / webMethods add-on).</li>
-    <li><strong>Preview / emerging:</strong> "Context in watsonx.data" federated semantic layer; next-gen multi-agent watsonx Orchestrate control plane; GPU-accelerated Presto; native watsonx.data Sink connector and the Real-Time Context Engine. Label these as forward-looking when you quote them.</li>
+    <li><strong>Shipping today (GA):</strong> the Confluent, Tableflow, and Flink integrations with watsonx.data (announced at Think on 5 May 2026), the IBM MQ connectors, Confluent Platform certified on Linux on Z / s390x, and IBM Confluent Platform as a product (standalone, or as a CP4I / webMethods add-on).</li>
+    <li><strong>Roadmap, not shipped yet:</strong> "Context in watsonx.data" (the federated semantic layer), the next-gen multi-agent Orchestrate control plane, GPU-accelerated Presto, the native watsonx.data Sink connector, and the Real-Time Context Engine. If you mention any of these, say "roadmap" in the same breath.</li>
   </ul>
   <div class="callout gotcha">
     <span class="lbl">Accuracy note carried into the Integration page</span>
-    <p>There is <strong>no public formal Statement of Direction deprecating IBM Event Streams or Event Processing.</strong> IBM still actively ships and updates them. The correct framing is "IBM Confluent Platform is the strategic go-forward streaming engine and the natural consolidation target" — not "Event Streams is EOL." See the IBM Integration page for the full picture.</p>
+    <p>Watch this one. There is <strong>no public formal Statement of Direction deprecating IBM Event Streams or Event Processing.</strong> IBM still ships and updates both. So the line is "IBM Confluent Platform is the strategic go-forward streaming engine and the natural consolidation target," never "Event Streams is EOL." The Integration page digs into why that distinction matters.</p>
   </div>
 
   <h2>How to use this guide</h2>
-  <p>Three pillar pages, each self-contained: <a href="#watsonx">watsonx.data</a> (the data-at-rest handoff), <a href="#integration">IBM Integration</a> (MQ, Event Automation, webMethods, StreamSets), and <a href="#z">IBM Z</a> (mainframe CDC and hybrid topologies). Each opens with an architecture diagram, goes deep on components/config/gotchas, then works 2–3 named use cases with their own diagrams, and ends with cited references.</p>
+  <p>There are three pillar pages, and each one stands on its own, so jump to whatever the customer in front of you cares about. <a href="#watsonx">watsonx.data</a> is the data-at-rest handoff. <a href="#integration">IBM Integration</a> covers MQ, Event Automation, webMethods, and StreamSets. <a href="#z">IBM Z</a> is the mainframe CDC and hybrid story. Every page opens with an architecture diagram, gets into the components, configs, and the gotchas that bite, then walks two or three real use cases with their own diagrams, and finishes with the references so you can check my work.</p>
 
   <h2 class="refs">References</h2>
   <div class="refs">
   <ol>
-    <li>IBM Newsroom — <a href="https://newsroom.ibm.com/2026-03-17-ibm-completes-acquisition-of-confluent,-making-real-time-data-the-engine-of-enterprise-ai-and-agents">IBM completes acquisition of Confluent (2026-03-17)</a></li>
-    <li>Confluent — <a href="https://www.confluent.io/press-release/ibm-completes-acquisition-of-confluent/">IBM completes acquisition of Confluent (press release)</a></li>
-    <li>IBM — <a href="https://www.ibm.com/new/announcements/ibm-and-confluent-announce-ability-to-connect-process-and-govern-real-time-data-for-applications-and-ai-agents">IBM and Confluent announce ability to connect, process and govern real-time data</a></li>
-    <li>Forrester — <a href="https://www.forrester.com/blogs/why-ibm-paid-11b-for-real-time-ai-not-kafka/">Why IBM paid $11B for real-time AI, not Kafka</a></li>
-    <li>PRNewswire — <a href="https://www.prnewswire.com/news-releases/think-2026-ibm-delivers-the-blueprint-for-the-ai-operating-model-as-the-ai-divide-widens-302762136.html">Think 2026 announcements</a></li>
-    <li>Confluent — <a href="https://www.confluent.io/press-release/build-and-secure-real-time-ai/">Build and secure real-time AI (2026-05-19)</a></li>
-    <li>Apache Iceberg — <a href="https://iceberg.apache.org/">iceberg.apache.org</a></li>
-    <li>Model Context Protocol — <a href="https://modelcontextprotocol.io/">modelcontextprotocol.io</a></li>
-    <li>IBM — <a href="https://www.ibm.com/products/confluent">IBM Confluent product page</a></li>
-    <li>IBM — <a href="https://www.ibm.com/products/watsonx-data">watsonx.data product page</a></li>
+    <li>IBM Newsroom: <a href="https://newsroom.ibm.com/2026-03-17-ibm-completes-acquisition-of-confluent,-making-real-time-data-the-engine-of-enterprise-ai-and-agents">IBM completes acquisition of Confluent (2026-03-17)</a></li>
+    <li>Confluent: <a href="https://www.confluent.io/press-release/ibm-completes-acquisition-of-confluent/">IBM completes acquisition of Confluent (press release)</a></li>
+    <li>IBM: <a href="https://www.ibm.com/new/announcements/ibm-and-confluent-announce-ability-to-connect-process-and-govern-real-time-data-for-applications-and-ai-agents">IBM and Confluent announce ability to connect, process and govern real-time data</a></li>
+    <li>PRNewswire: <a href="https://www.prnewswire.com/news-releases/think-2026-ibm-delivers-the-blueprint-for-the-ai-operating-model-as-the-ai-divide-widens-302762136.html">Think 2026 announcements</a></li>
+    <li>Confluent: <a href="https://www.confluent.io/press-release/build-and-secure-real-time-ai/">Build and secure real-time AI (2026-05-19)</a></li>
+    <li>Apache Iceberg: <a href="https://iceberg.apache.org/">iceberg.apache.org</a></li>
+    <li>Model Context Protocol: <a href="https://modelcontextprotocol.io/">modelcontextprotocol.io</a></li>
+    <li>IBM: <a href="https://www.ibm.com/products/confluent">IBM Confluent product page</a></li>
+    <li>IBM: <a href="https://www.ibm.com/products/watsonx-data">watsonx.data product page</a></li>
   </ol>
   </div>
 </section>
@@ -249,24 +249,24 @@ hr.soft{border:none;border-top:1px solid var(--border);margin:34px 0}
   </div>
 
   <div class="abstract">
-    <p><strong>The short version:</strong> watsonx.data is an open lakehouse — Iceberg + Parquet tables queried by Presto (C++/Velox) and Spark, running on IBM Cloud / AWS / Azure / GCP and on-prem (OpenShift, IBM Storage Fusion). The integration spine is <strong>Confluent Tableflow</strong>: it continuously materializes a Kafka topic into Iceberg, zero-copy, so you don't stand up and babysit a second ETL pipeline to land streaming data in the lake. The interesting parts are the catalog wiring, a hard read-only constraint, and where managed-storage convenience stops.</p>
+    <p><strong>The short version:</strong> watsonx.data is an open lakehouse. Iceberg and Parquet tables, queried by Presto (C++/Velox) and Spark, running on IBM Cloud, AWS, Azure, GCP, or on-prem (OpenShift, IBM Storage Fusion). The thing that connects it to Confluent is <strong>Tableflow</strong>, and this is the part worth understanding: it keeps a Kafka topic continuously materialized as an Iceberg table, zero-copy, so you never have to stand up and then babysit a second ETL pipeline just to get streaming data into the lake. Where it gets interesting is the catalog wiring, one hard read-only rule that surprises people, and the exact point where the managed-storage convenience runs out.</p>
   </div>
 
   <figure>
     <div class="excalidraw" id="fig2"></div>
-    <figcaption><b>Figure 2.</b> The watsonx.data data path: Flink shapes events, Tableflow materializes topics to Iceberg on object storage via a REST catalog, then Presto/Spark/Milvus consume — with column-level lineage spanning the lot.</figcaption>
+    <figcaption><b>Figure 2.</b> The watsonx.data data path: Flink shapes events, Tableflow materializes topics to Iceberg on object storage via a REST catalog, then Presto/Spark/Milvus consume, with column-level lineage spanning the lot.</figcaption>
   </figure>
 
   <h2>How Tableflow actually works</h2>
-  <p>Tableflow watches a Kafka topic and keeps an Iceberg (or Delta) table in sync with it. It reads the topic's schema from Schema Registry, converts Avro / JSON Schema / Protobuf records to Parquet, and handles <strong>automated schema evolution</strong> (add/remove columns, type widening), CDC materialization, and Parquet compaction so you're not left with a swamp of tiny files. You get a built-in <strong>Iceberg REST Catalog</strong>, or you sync the tables out to an external catalog — AWS Glue, Snowflake Open Catalog (Polaris), or Databricks Unity. Storage is either Confluent <strong>managed storage</strong> or <strong>BYOS</strong> (bring-your-own — S3 or IBM COS).</p>
+  <p>Picture Tableflow as a process that watches a Kafka topic and keeps an Iceberg (or Delta) table in lockstep with it. It pulls the topic's schema from Schema Registry, turns Avro, JSON Schema, or Protobuf records into Parquet, and quietly handles the annoying parts: automated schema evolution (adding and dropping columns, widening types), CDC materialization, and Parquet compaction so you don't end up with the classic swamp of a million tiny files. You can use the built-in Iceberg REST Catalog, or sync the tables out to an external one like AWS Glue, Snowflake Open Catalog (Polaris), or Databricks Unity. For storage you pick either Confluent's managed storage or BYOS (bring your own, on S3 or IBM COS).</p>
 
   <div class="callout gotcha">
     <span class="lbl">Tableflow scope limits</span>
-    <p>Tableflow is <strong>Confluent Cloud only</strong> today — not Confluent Platform, and not GCP-backed clusters at GA. Snapshot retention is configurable only within <strong>10–100</strong> snapshots. If a customer's mental model is "Tableflow everywhere including my on-prem CP cluster," reset it early. (On-prem materialization is emerging via WarpStream Tableflow + watsonx.data on-prem — flag it as forward-looking.)</p>
+    <p>Tableflow is <strong>Confluent Cloud only</strong> right now. Not Confluent Platform, and not GCP-backed clusters at GA. Snapshot retention only goes from 10 to 100 snapshots, nothing outside that band. If the customer walks in assuming "Tableflow everywhere, including my on-prem CP cluster," correct that on the first call before it becomes a design assumption. (On-prem materialization is starting to show up via WarpStream Tableflow plus watsonx.data on-prem, but treat it as roadmap for now.)</p>
   </div>
 
-  <h2>Wiring watsonx.data to Tableflow — the exact config</h2>
-  <p>watsonx.data registers the Tableflow Iceberg REST catalog as a data source. Two engines, two configs, two sets of footguns.</p>
+  <h2>Wiring watsonx.data to Tableflow: the exact config</h2>
+  <p>What you're doing here is registering the Tableflow Iceberg REST catalog as a data source inside watsonx.data. There are two engines you can point at it, Spark and Presto, and each has its own config plus its own little set of traps. Here's both.</p>
 
   <h3>Spark engine</h3>
   <pre class="code"><code><span class="k">spark.sql.catalog.tableflow</span>            = <span class="s">org.apache.iceberg.spark.SparkCatalog</span>
@@ -276,7 +276,7 @@ hr.soft{border:none;border-top:1px solid var(--border);margin:34px 0}
 <span class="k">spark.sql.catalog.tableflow.io-impl</span>    = <span class="s">org.apache.iceberg.aws.s3.S3FileIO</span>
 <span class="k">spark.sql.catalog.tableflow.s3.remote-signing-enabled</span> = <span class="s">true</span>   <span class="c"># required for managed storage</span>
 <span class="c"># namespace = your Kafka cluster id (lkc-xxxxx); table name = the topic name</span></code></pre>
-  <p>The catalog <code>uri</code> is the Tableflow REST endpoint scoped to your org and environment; the credential is a Cloud API key/secret pair. With managed storage, <code>s3.remote-signing-enabled=true</code> is what lets Spark read the data files without you handing it raw bucket credentials — Confluent signs the requests.</p>
+  <p>The <code>uri</code> is just the Tableflow REST endpoint scoped to your org and environment, and the credential is a Cloud API key and secret pair. The line that does the clever bit is <code>s3.remote-signing-enabled=true</code>: with managed storage, that's what lets Spark read the data files without you ever handing it raw bucket credentials. Confluent signs the requests on Spark's behalf.</p>
 
   <h3>Presto engine</h3>
   <pre class="code"><code><span class="k">connector.name</span>         = <span class="s">iceberg</span>
@@ -285,18 +285,18 @@ hr.soft{border:none;border-top:1px solid var(--border);margin:34px 0}
 <span class="k">iceberg.rest.auth.type</span> = <span class="s">OAUTH2</span></code></pre>
   <div class="callout gotcha">
     <span class="lbl">Presto gotchas (the ones that bite)</span>
-    <p><strong>1.</strong> Presto does <em>not</em> support Confluent managed storage / vended credentials — so with Presto you <strong>must use BYOS</strong>. <strong>2.</strong> Presto can't auto-discover Tableflow tables; you have to reference exact topic/table names. <strong>3.</strong> The namespace is the cluster id (<code>lkc-xxxxx</code>) which contains hyphens — quote it in SQL. Provision it as a custom Iceberg data source in watsonx.data Infrastructure Manager.</p>
+    <p>Three things that will trip you up. First, Presto does <em>not</em> support Confluent managed storage or vended credentials, so with Presto you have no choice, it's BYOS. Second, Presto won't auto-discover Tableflow tables, so you have to name exact topics and tables. Third, the namespace is the cluster id (<code>lkc-xxxxx</code>), which has hyphens in it, so quote it in SQL or it'll blow up. Provision the whole thing as a custom Iceberg data source in watsonx.data Infrastructure Manager.</p>
   </div>
 
-  <h2>The read-only constraint — design around it</h2>
+  <h2>The read-only constraint: design around it</h2>
   <div class="callout note">
     <span class="lbl">Verbatim from Confluent docs</span>
     <p>"Iceberg tables exposed via external catalog synchronization are read-only. When working with Iceberg tables created by Tableflow, it's essential to ensure that they are consumed as read-only tables."</p>
   </div>
-  <p>So: no <code>INSERT</code> / <code>UPDATE</code> / <code>DELETE</code> against these tables from Spark or Presto. The write path is the stream — you change the data by <strong>publishing to the source Kafka topic</strong>, and Tableflow reflects it. This is the right model (single source of truth is the log) but it surprises people who treat the lakehouse table as mutable. Note also that external catalog sync (Glue / Polaris / Unity) requires BYOS — it doesn't work with managed storage.</p>
+  <p>Read that literally. No <code>INSERT</code>, <code>UPDATE</code>, or <code>DELETE</code> against these tables from Spark or Presto. The only write path is the stream. You change the data by publishing to the source Kafka topic, and Tableflow reflects the change downstream. I actually think this is the right model, because the log stays the single source of truth, but it reliably catches people who are used to treating a lakehouse table as something they can mutate. One more thing to file away: external catalog sync (Glue, Polaris, Unity) needs BYOS and won't work with managed storage.</p>
 
   <h2>Land it clean: medallion + Flink AI functions</h2>
-  <p>Don't dump raw bronze into the lake and clean it later. Use Flink to filter, dedupe, and enrich <em>before</em> Tableflow, so data lands silver/gold. Confluent Cloud Flink ships a useful set of in-SQL AI/ML functions you can run inline in that shaping step:</p>
+  <p>Resist the temptation to dump raw bronze into the lake and promise to clean it up later. You won't, and now it's everyone's problem. Do the filtering, deduping, and enrichment in Flink <em>before</em> Tableflow, so the data lands already at silver or gold. And Confluent Cloud Flink gives you a genuinely useful set of in-SQL AI and ML functions you can call inline during that shaping step:</p>
   <ul>
     <li><strong>Classical ML:</strong> <code>ML_PREDICT</code>, <code>ML_FORECAST</code>, <code>ML_DETECT_ANOMALIES</code> (ARIMA), <code>ML_DETECT_ANOMALIES_ROBUST</code> (MAD).</li>
     <li><strong>Generative / foundation-model:</strong> <code>AI_COMPLETE</code>, <code>AI_EMBEDDING</code>, <code>AI_SENTIMENT</code>, <code>AI_DETECT_PII</code>, <code>AI_DETECT_ANOMALIES</code> (TimesFM), <code>AI_RUN_AGENT</code>, <code>AI_TOOL_INVOKE</code>.</li>
@@ -304,31 +304,31 @@ hr.soft{border:none;border-top:1px solid var(--border);margin:34px 0}
 
   <h2>Vectors, lineage, reasoning</h2>
   <ul>
-    <li><strong>Milvus in watsonx.data</strong> — managed vector store (the watsonx-data reference cites up to ~100M vectors × 384 dims). Run it as a parallel sink alongside Iceberg: unstructured text → embeddings → Milvus for semantic search / RAG, wired into watsonx Orchestrate.</li>
+    <li><strong>Milvus in watsonx.data:</strong> managed vector store (the watsonx-data reference cites up to ~100M vectors × 384 dims). Run it as a parallel sink alongside Iceberg: unstructured text → embeddings → Milvus for semantic search / RAG, wired into watsonx Orchestrate.</li>
     <li><strong>watsonx.data intelligence</strong> (= IBM Data Lineage, integrating Manta) does OpenLineage-based harvesting across 50+ integrations, column-level end-to-end lineage, AI factsheets, quality and governance.</li>
-    <li><strong>watsonx.ai</strong> Granite models do the reasoning — e.g. pulling structured codes out of free-text notes (see the healthcare use case).</li>
+    <li><strong>watsonx.ai:</strong> Granite models do the reasoning, for example pulling structured codes out of free-text notes (see the healthcare use case).</li>
     <li><strong>MCP:</strong> watsonx.data 2.2.x ships a remote MCP server; import it into Orchestrate with <code>orchestrate toolkits import --kind mcp</code>.</li>
   </ul>
   <div class="callout note">
     <span class="lbl">Honest hedge</span>
-    <p>IBM docs name OpenLineage and "50+ integrations," but I couldn't verbatim-confirm a documented "harvests Confluent Schema Registry" path. Phrase it to customers as "harvests operational metadata from streaming sources, including schemas" rather than claiming a named Schema-Registry lineage connector.</p>
+    <p>IBM docs name OpenLineage and "50+ integrations," but I dug for a documented "harvests Confluent Schema Registry" path and couldn't confirm one word for word. So phrase it as "harvests operational metadata from streaming sources, including schemas." Don't claim a named Schema-Registry lineage connector you can't point at in the docs.</p>
   </div>
 
   <h2>Use cases</h2>
 
   <div class="uc">
-    <h3><span class="star">★</span> UC-A — Real-time insurance claims fraud (catastrophe surge) <span class="tag">flagship</span></h3>
-    <p>After a hurricane, claims spike and fraud peaks <em>exactly</em> when adjusters are buried. Nightly batch scoring is useless here — you need to flag suspect claims as they arrive. IBM MQ carries the claims; the Confluent IBM MQ Source connector lands them on a Kafka <code>claims</code> topic; Flink scores them inline with <code>ML_DETECT_ANOMALIES</code> / <code>AI_DETECT_ANOMALIES</code>; the enriched stream flows through Tableflow to Iceberg; watsonx.data Presto answers the at-rest questions (approvals/denials by city, 6-month fraud look-back); and watsonx Orchestrate agents work the flagged queue.</p>
+    <h3><span class="star">★</span> UC-A: Real-time insurance claims fraud (catastrophe surge) <span class="tag">flagship</span></h3>
+    <p>Think about what actually happens after a hurricane. Claims spike, and fraud peaks at the exact moment your adjusters are drowning. Nightly batch scoring is useless here, because by the time the batch runs the damage is done. You need suspect claims flagged as they land. So: IBM MQ carries the claims, the Confluent IBM MQ Source connector drops them onto a Kafka <code>claims</code> topic, and Flink scores them inline with <code>ML_DETECT_ANOMALIES</code> or <code>AI_DETECT_ANOMALIES</code>. The enriched stream rides Tableflow into Iceberg, watsonx.data Presto answers the at-rest questions (approvals and denials by city, a six-month fraud look-back), and watsonx Orchestrate agents work the flagged queue.</p>
     <figure>
       <div class="excalidraw" id="fig3"></div>
       <figcaption><b>Figure 3.</b> MQ → Kafka → Flink anomaly scoring → Tableflow/Iceberg → watsonx.data + Orchestrate agents.</figcaption>
     </figure>
-    <p><strong>Components:</strong> IBM MQ Source connector, Confluent Cloud Flink (anomaly functions), Tableflow (BYOS on S3/COS), watsonx.data Presto, watsonx Orchestrate. <strong>Honesty:</strong> the Flink functions are real and cited; the specific demo writeup isn't public, so present this as a realistic reference architecture, not a shipped IBM demo.</p>
+    <p>Components: IBM MQ Source connector, Confluent Cloud Flink (the anomaly functions), Tableflow (BYOS on S3 or COS), watsonx.data Presto, and watsonx Orchestrate. One honesty note so nobody gets caught out: the Flink functions are real and cited, but the specific demo writeup isn't public. Present this as a realistic reference architecture you could build, not as a shipped IBM demo.</p>
   </div>
 
   <div class="uc">
-    <h3><span class="star">★</span> UC-B — Customer 360 with live sentiment (federated join) <span class="tag">flagship</span></h3>
-    <p>Clickstream and session events stream into Kafka; Flink sessionizes them and scores sentiment with <code>AI_SENTIMENT</code>; Tableflow lands a live session table in Iceberg. Then watsonx.data Presto does the thing lakehouses are good at — a <strong>federated join</strong> of the fresh session table against historical demographics that already live in the lake:</p>
+    <h3><span class="star">★</span> UC-B: Customer 360 with live sentiment (federated join) <span class="tag">flagship</span></h3>
+    <p>Clickstream and session events flow into Kafka, Flink sessionizes them and scores sentiment with <code>AI_SENTIMENT</code>, and Tableflow lands a live session table in Iceberg. Now watsonx.data Presto does the one thing lakehouses are genuinely great at: a federated join of that fresh session table against the historical demographics already sitting in the lake.</p>
     <pre class="code"><code><span class="k">SELECT</span> s.session_id, s.sentiment_score, d.segment, d.lifetime_value
 <span class="k">FROM</span>   tableflow.<span class="s">"lkc-xxxxx"</span>.sessions_live  s
 <span class="k">JOIN</span>   hive.demographics.customer_360         d
@@ -342,7 +342,7 @@ hr.soft{border:none;border-top:1px solid var(--border);margin:34px 0}
   </div>
 
   <div class="uc">
-    <h3>UC-C — Healthcare clinical-code extraction (governance vehicle)</h3>
+    <h3>UC-C: Healthcare clinical-code extraction (governance vehicle)</h3>
     <p>Clinical events stream to Kafka → Tableflow → Iceberg → watsonx.data, where a Granite model on watsonx.ai extracts ICD-10 codes from free-text notes and reconciles them against billing. The point of this one is <strong>governance</strong>: it exercises end-to-end column-level lineage via watsonx.data intelligence and makes the read-only projection constraint concrete (the lake table is the governed read model; corrections go back through the stream).</p>
     <figure>
       <div class="excalidraw" id="fig5"></div>
@@ -357,26 +357,26 @@ hr.soft{border:none;border-top:1px solid var(--border);margin:34px 0}
     • Presto ⇒ BYOS mandatory; no managed-storage vended creds; no table auto-discovery; quote the <code>lkc-</code> namespace.<br>
     • Tables are read-only; the write path is the topic.<br>
     • External catalog sync (Glue/Polaris/Unity) needs BYOS.<br>
-    • Shape data with Flink to land silver/gold; snapshot retention is 10–100.<br>
-    • Schema-Registry-as-lineage-source is a hedge, not a documented connector — phrase accordingly.</p>
+    • Shape data with Flink to land silver/gold; snapshot retention is 10 to 100.<br>
+    • Schema-Registry-as-lineage-source is a hedge, not a documented connector, so phrase accordingly.</p>
   </div>
 
   <h2 class="refs">References</h2>
   <div class="refs">
   <ol>
-    <li>Confluent Docs — <a href="https://docs.confluent.io/cloud/current/topics/tableflow/overview.html">Tableflow overview</a></li>
-    <li>Confluent — <a href="https://www.confluent.io/product/tableflow/">Tableflow product</a></li>
-    <li>Confluent Docs — <a href="https://docs.confluent.io/cloud/current/topics/tableflow/how-to-guides/catalog-integration/overview.html">Catalog integration (read-only constraint)</a></li>
-    <li>IBM Docs — <a href="https://www.ibm.com/docs/en/watsonxdata/saas?topic=in-querying-confluent-tableflow-using-spark-engine">Querying Confluent Tableflow using the Spark engine</a></li>
-    <li>IBM Docs — <a href="https://www.ibm.com/docs/en/watsonxdata/saas?topic=in-querying-confluent-tableflow-using-presto-engine">Querying Confluent Tableflow using the Presto engine</a></li>
-    <li>Confluent Docs — <a href="https://docs.confluent.io/cloud/current/flink/reference/functions/model-inference-functions.html">Flink AI/ML model-inference functions</a></li>
-    <li>Confluent Docs — <a href="https://docs.confluent.io/cloud/current/flink/reference/functions/overview.html">Flink SQL functions overview</a></li>
-    <li>IBM — <a href="https://www.ibm.com/products/watsonx-data">watsonx.data</a></li>
-    <li>IBM Docs — <a href="https://www.ibm.com/docs/en/watsonxdata/premium/2.2.x?topic=service-watsonxdata-remote-model-context-protocol-mcp-server">watsonx.data remote MCP server</a></li>
-    <li>IBM — <a href="https://www.ibm.com/products/manta-data-lineage">IBM Data Lineage (Manta)</a></li>
-    <li>IBM — <a href="https://www.ibm.com/products/watsonx-ai">watsonx.ai</a> · <a href="https://huggingface.co/ibm-granite">IBM Granite models</a></li>
-    <li>Milvus — <a href="https://milvus.io/docs">Milvus docs</a></li>
-    <li>IBM Developer — <a href="https://developer.ibm.com/tutorials/event-driven-agentic-ai-system-confluent-watsonx-orchestrate/">Event-driven agentic AI with Confluent + watsonx Orchestrate</a></li>
+    <li>Confluent Docs: <a href="https://docs.confluent.io/cloud/current/topics/tableflow/overview.html">Tableflow overview</a></li>
+    <li>Confluent: <a href="https://www.confluent.io/product/tableflow/">Tableflow product</a></li>
+    <li>Confluent Docs: <a href="https://docs.confluent.io/cloud/current/topics/tableflow/how-to-guides/catalog-integration/overview.html">Catalog integration (read-only constraint)</a></li>
+    <li>IBM Docs: <a href="https://www.ibm.com/docs/en/watsonxdata/saas?topic=in-querying-confluent-tableflow-using-spark-engine">Querying Confluent Tableflow using the Spark engine</a></li>
+    <li>IBM Docs: <a href="https://www.ibm.com/docs/en/watsonxdata/saas?topic=in-querying-confluent-tableflow-using-presto-engine">Querying Confluent Tableflow using the Presto engine</a></li>
+    <li>Confluent Docs: <a href="https://docs.confluent.io/cloud/current/flink/reference/functions/model-inference-functions.html">Flink AI/ML model-inference functions</a></li>
+    <li>Confluent Docs: <a href="https://docs.confluent.io/cloud/current/flink/reference/functions/overview.html">Flink SQL functions overview</a></li>
+    <li>IBM: <a href="https://www.ibm.com/products/watsonx-data">watsonx.data</a></li>
+    <li>IBM Docs: <a href="https://www.ibm.com/docs/en/watsonxdata/premium/2.2.x?topic=service-watsonxdata-remote-model-context-protocol-mcp-server">watsonx.data remote MCP server</a></li>
+    <li>IBM: <a href="https://www.ibm.com/products/manta-data-lineage">IBM Data Lineage (Manta)</a></li>
+    <li>IBM: <a href="https://www.ibm.com/products/watsonx-ai">watsonx.ai</a> · <a href="https://huggingface.co/ibm-granite">IBM Granite models</a></li>
+    <li>Milvus: <a href="https://milvus.io/docs">Milvus docs</a></li>
+    <li>IBM Developer: <a href="https://developer.ibm.com/tutorials/event-driven-agentic-ai-system-confluent-watsonx-orchestrate/">Event-driven agentic AI with Confluent + watsonx Orchestrate</a></li>
   </ol>
   </div>
 </section>
@@ -388,12 +388,12 @@ hr.soft{border:none;border-top:1px solid var(--border);margin:34px 0}
   </div>
 
   <div class="abstract">
-    <p><strong>The short version:</strong> IBM now ships <strong>IBM Confluent Platform</strong> as a product — standalone and as an add-on to Cloud Pak for Integration (CP4I) and webMethods. Around it sits IBM's existing hybrid-integration estate: Event Automation (Event Streams / Event Processing / Event Endpoint Management), IBM MQ, App Connect, and IBM Data Integration (StreamSets, DataStage, Data Replication, Databand). This page is about how Confluent slots into that estate, the MQ connector trade-offs you'll actually argue about, and one correction worth getting right.</p>
+    <p><strong>The short version:</strong> IBM now ships <strong>IBM Confluent Platform</strong> as a product, both standalone and as an add-on to Cloud Pak for Integration (CP4I) and webMethods. The thing to keep in your head is that Confluent doesn't land in a vacuum. It lands in the middle of IBM's existing hybrid-integration estate: Event Automation (Event Streams / Event Processing / Event Endpoint Management), IBM MQ, App Connect, and IBM Data Integration (StreamSets, DataStage, Data Replication, Databand). Everything that follows on this page is about where Confluent slots into that estate, the MQ connector trade-offs you'll genuinely end up arguing about, and one correction that's worth getting exactly right.</p>
   </div>
 
   <div class="callout gotcha">
     <span class="lbl">The correction (say this accurately)</span>
-    <p>There is <strong>no public formal Statement of Direction deprecating Event Streams or Event Processing.</strong> As of mid-2026 IBM still markets and actively develops them (Event Streams shipped Kafka 3.8 and CLI updates in Apr 2026). What <em>is</em> deprecated: "Event Streams for IBM Cloud Satellite," and the CP4I-7.0.x Confluent packaging hit EOL in Apr 2025. Correct framing: <strong>IBM Confluent Platform is the strategic go-forward streaming engine and the natural consolidation target; EEM / AsyncAPI is the governance layer that carries forward.</strong> Do not quote a deprecation date — there isn't one, and SEs who invent one lose credibility.</p>
+    <p>There is <strong>no public formal Statement of Direction deprecating Event Streams or Event Processing.</strong> As of mid-2026 IBM still markets and actively develops them (Event Streams shipped Kafka 3.8 and CLI updates in Apr 2026). What <em>is</em> deprecated: "Event Streams for IBM Cloud Satellite," and the CP4I-7.0.x Confluent packaging hit EOL in Apr 2025. Correct framing: <strong>IBM Confluent Platform is the strategic go-forward streaming engine and the natural consolidation target; EEM / AsyncAPI is the governance layer that carries forward.</strong> Do not quote a deprecation date. There isn't one, and the moment someone invents one in front of a customer, they've lost the room.</p>
   </div>
 
   <figure>
@@ -402,15 +402,16 @@ hr.soft{border:none;border-top:1px solid var(--border);margin:34px 0}
   </figure>
 
   <h2>The Event Automation layer (on top of Confluent Kafka)</h2>
+  <p>Here's the mental model I use. Event Automation is three pieces, and they don't all have the same future. Two of them are durable, one of them is the role that's slowly being handed over to Confluent.</p>
   <ul>
-    <li><strong>Event Streams</strong> — IBM's Kafka distribution. The consolidation story moves this role toward IBM Confluent Platform over time, but it's alive today.</li>
-    <li><strong>Event Processing</strong> — a drag-and-drop, Flink-style low-code authoring UI. This is the genuine differentiator versus raw Confluent: a no-code surface for building stream processing that Confluent doesn't ship natively.</li>
-    <li><strong>Event Endpoint Management (EEM)</strong> — an AsyncAPI catalog plus a socialization/governance gateway. This carries forward regardless of which Kafka engine sits underneath.</li>
+    <li><strong>Event Streams:</strong> IBM's own Kafka distribution. This is the role the consolidation story moves toward IBM Confluent Platform over time. It's alive and supported today, so don't write it off in front of a customer who's running it, but understand which way the arrow points.</li>
+    <li><strong>Event Processing:</strong> a drag-and-drop, Flink-style low-code authoring UI. This is the no-code surface IBM layers on top for building stream processing without writing SQL or Java.</li>
+    <li><strong>Event Endpoint Management (EEM):</strong> an AsyncAPI catalog plus a socialization and governance gateway. This is the piece that carries forward no matter which Kafka engine ends up underneath, so it's the safest part of the story to lean on.</li>
   </ul>
-  <p>Public scale references: PVcomBank ~5M notifications/day; Ajman ~50K TPS; Norsk Tipping 5K+ gaming TPS.</p>
+  <p>If you need proof it scales, here are the public references worth quoting: PVcomBank at roughly 5M notifications a day, Ajman at about 50K TPS, Norsk Tipping at 5K+ gaming TPS.</p>
 
-  <h2>IBM MQ ↔ Confluent: coexistence and honest connector trade-offs</h2>
-  <p>This is the most common conversation. MQ is mission-critical transactional messaging; Confluent adds replay, fan-out to many independent consumers, stream processing, and event distribution at scale. They coexist — the decision is use-case-led, not religious. The connectors are where the detail lives:</p>
+  <h2>IBM MQ and Confluent: coexistence and honest connector trade-offs</h2>
+  <p>This is the conversation you'll have more than any other, so it's worth getting your framing straight. MQ is mission-critical transactional messaging and it isn't going anywhere. Confluent adds the things MQ was never built for: replay, fan-out to many independent consumers, stream processing, and event distribution at scale. They coexist, and the choice between them is use-case-led, not a religious war. The interesting detail lives in the connectors:</p>
 
   <div class="tablewrap">
   <table>
@@ -433,33 +434,35 @@ hr.soft{border:none;border-top:1px solid var(--border);margin:34px 0}
 
   <div class="callout trade">
     <span class="lbl">Opinionated trade-off</span>
-    <p>Lead with <strong>Confluent</strong> for cloud/elastic deployments, fully-managed connectors, and Schema Registry + CSFLE. Lead with the <strong>IBM/native</strong> connectors for z/OS bindings mode, deep MQ-specific configuration, and when the customer wants IBM-supported Kubernetes operator artifacts. On z/OS specifically, use the certified IBM MQ connectors in <strong>bindings</strong> mode — that's covered on the IBM Z page.</p>
+    <p>My rule of thumb: reach for <strong>Confluent</strong> when the deployment is cloud or elastic, when you want fully-managed connectors, and when Schema Registry plus CSFLE are part of the ask. Reach for the <strong>IBM native</strong> connectors when you need z/OS bindings mode, when there's deep MQ-specific configuration in play, or when the customer specifically wants IBM-supported Kubernetes operator artifacts. On z/OS the answer is almost always the certified IBM MQ connectors in <strong>bindings</strong> mode, and the IBM Z page goes into why.</p>
   </div>
 
-  <h2>webMethods, App Connect, and IBM Data Integration vs. Confluent DSP</h2>
+  <h2>webMethods, App Connect, and IBM Data Integration next to Confluent DSP</h2>
+  <p>There's a cluster of IBM integration products that sit near Confluent and sometimes look like they overlap. Here's what each one actually is, so you can tell them apart on a whiteboard:</p>
   <ul>
-    <li><strong>webMethods Hybrid Integration</strong> — IBM's iPaaS, with an Event Automation component; the SaaS complement to CP4I.</li>
-    <li><strong>App Connect Enterprise (ACE) 13.x</strong> — 200+ connectors; can expose flows and connectors as <strong>MCP tools</strong>, which matters for the agent layer.</li>
-    <li><strong>IBM Data Integration</strong> — StreamSets (JVM visual low-code pipelines: origins → processors → destinations, with data-drift auto-adapt; embedded in watsonx.data integration), DataStage (batch ETL/ELT), Data Replication / IIDR (CDC from Db2 z/OS, VSAM, IMS → Kafka), Databand (observability).</li>
+    <li><strong>webMethods Hybrid Integration:</strong> IBM's iPaaS, with an Event Automation component baked in. Think of it as the SaaS complement to CP4I.</li>
+    <li><strong>App Connect Enterprise (ACE) 13.x:</strong> 200+ connectors, and the part worth remembering is that it can expose its flows and connectors as <strong>MCP tools</strong>. That's what makes it relevant to the agent layer.</li>
+    <li><strong>IBM Data Integration:</strong> a family. StreamSets is the JVM visual low-code pipeline tool (origins → processors → destinations, with data-drift auto-adapt, and it's embedded in watsonx.data integration). DataStage is the batch ETL/ELT workhorse. Data Replication / IIDR does CDC from Db2 z/OS, VSAM, and IMS into Kafka. Databand handles observability.</li>
   </ul>
   <div class="callout trade">
     <span class="lbl">Where the line falls</span>
-    <p>Lead with <strong>IBM Data Integration</strong> for batch ETL, heterogeneous database movement, and data-drift-tolerant pipelines. Lead with <strong>Confluent DSP</strong> (Kafka commit log + Flink + Tableflow + Connect + governance) for sub-minute event streaming, replay, and event-native processing. They overlap in the middle; the deciding question is "is the unit of work an event or a batch?"</p>
+    <p>Reach for <strong>IBM Data Integration</strong> when the job is batch ETL, heterogeneous database movement, or pipelines that have to tolerate schema drift. Reach for <strong>Confluent DSP</strong> (Kafka commit log + Flink + Tableflow + Connect + governance) when you need sub-minute event streaming, replay, or event-native processing. They genuinely overlap in the middle, and the question that settles it every time is simple: is the unit of work an event, or a batch?</p>
   </div>
 
-  <h2>Connectors &amp; distribution</h2>
+  <h2>Connectors and distribution</h2>
+  <p>A few connector specifics that come up often enough to be worth memorizing:</p>
   <ul>
-    <li><strong>Db2 Source (JDBC) for LUW</strong> — fully-managed GA on Confluent Cloud; snapshot + incrementing/timestamp modes; Avro/JSON_SR/Protobuf/JSON; CSFLE.</li>
-    <li><strong>Oracle CDC (XStream)</strong> — premium connector, cloud and platform.</li>
-    <li><strong>SAP S/4HANA</strong> — two phases: Phase 1 OData v4 polling (fully-managed); Phase 2 push via ABAP partner add-ons → HTTP/Webhook Source. ASAPIO is confirmed (REST Proxy + Webhook, Confluent-certified since Apr 2021); SNP/Onibex are named but not separately verified.</li>
-    <li><strong>Distribution</strong> — Confluent on-prem via IBM Passport Advantage Online. Confluent's public Docker image reference lists amd64 + arm64; <strong>s390x builds are delivered through IBM distribution</strong> (CP is broadly certified on Linux on Z — see the IBM Z page).</li>
+    <li><strong>Db2 Source (JDBC) for LUW:</strong> fully-managed and GA on Confluent Cloud. Snapshot plus incrementing/timestamp modes, Avro/JSON_SR/Protobuf/JSON, and CSFLE.</li>
+    <li><strong>Oracle CDC (XStream):</strong> a premium connector, available on both cloud and platform.</li>
+    <li><strong>SAP S/4HANA:</strong> this one comes in two phases, and the distinction matters. Phase 1 is OData v4 polling and it's fully-managed. Phase 2 is true push, via ABAP partner add-ons feeding an HTTP/Webhook Source. ASAPIO is the one I'd actually commit to in writing (REST Proxy plus Webhook, Confluent-certified since Apr 2021). SNP and Onibex get named in the materials but I couldn't separately verify them, so don't oversell them.</li>
+    <li><strong>Distribution:</strong> Confluent runs on-prem via IBM Passport Advantage Online. One trap to flag: Confluent's public Docker image reference lists amd64 and arm64 only. The <strong>s390x builds come through IBM distribution</strong>, not that public reference. CP is broadly certified on Linux on Z, and the IBM Z page covers it.</li>
   </ul>
 
   <h2>Use cases</h2>
 
   <div class="uc">
-    <h3><span class="star">★</span> UC-A — Event Streams / CP4I → IBM Confluent Platform consolidation <span class="tag">flagship</span></h3>
-    <p><strong>Before:</strong> CP4I-embedded Event Streams (Kafka) + Event Processing + EEM. <strong>After:</strong> IBM Confluent Platform as the streaming engine, with EEM/AsyncAPI carried forward as the governance layer and Event Processing's low-code surface on top. Frame this as the <em>steered consolidation path</em> — the direction IBM is pointing customers — <strong>not</strong> a forced EOL migration with a deadline.</p>
+    <h3><span class="star">★</span> UC-A: Event Streams / CP4I → IBM Confluent Platform consolidation <span class="tag">flagship</span></h3>
+    <p>Picture the before and after. <strong>Before:</strong> CP4I-embedded Event Streams (Kafka) plus Event Processing plus EEM. <strong>After:</strong> IBM Confluent Platform as the streaming engine, with EEM/AsyncAPI carried forward as the governance layer and Event Processing's low-code surface still sitting on top. The framing that keeps you honest: this is the <em>steered consolidation path</em>, the direction IBM is pointing customers, and it is emphatically <strong>not</strong> a forced EOL migration with a deadline stapled to it.</p>
     <figure>
       <div class="excalidraw" id="fig7"></div>
       <figcaption><b>Figure 7.</b> Consolidation, not deprecation: the Kafka engine moves to IBM Confluent Platform while EEM/AsyncAPI and the low-code processing surface carry forward.</figcaption>
@@ -467,8 +470,8 @@ hr.soft{border:none;border-top:1px solid var(--border);margin:34px 0}
   </div>
 
   <div class="uc">
-    <h3><span class="star">★</span> UC-B — webMethods → Confluent Cloud → watsonx.data (data availability) <span class="tag">flagship</span></h3>
-    <p>webMethods publishes to a Confluent Cloud topic; an optional light Flink step shapes it; Tableflow lands it in Iceberg; it shows up in watsonx.data. The goal here is <strong>data-availability latency</strong> — getting webMethods-integrated data into the lakehouse fast — not query benchmarking. It's the cleanest way to make iPaaS-sourced data analytics-ready without a bespoke pipeline.</p>
+    <h3><span class="star">★</span> UC-B: webMethods → Confluent Cloud → watsonx.data (data availability) <span class="tag">flagship</span></h3>
+    <p>The flow is short and clean: webMethods publishes to a Confluent Cloud topic, an optional light Flink step shapes it, Tableflow lands it in Iceberg, and it shows up in watsonx.data. Be clear about what you're optimizing for. The goal is <strong>data-availability latency</strong>, getting webMethods-integrated data into the lakehouse fast, not winning a query benchmark. It's the cleanest way I know to make iPaaS-sourced data analytics-ready without hand-rolling a bespoke pipeline.</p>
     <figure>
       <div class="excalidraw" id="fig8"></div>
       <figcaption><b>Figure 8.</b> webMethods → Confluent Cloud → (optional Flink) → Tableflow/Iceberg → watsonx.data.</figcaption>
@@ -476,8 +479,8 @@ hr.soft{border:none;border-top:1px solid var(--border);margin:34px 0}
   </div>
 
   <div class="uc">
-    <h3>UC-C — MQ modernization / event distribution at scale</h3>
-    <p>Keep the MQ backbone for transactional messaging, bridge it to Confluent with the MQ Source/Sink connectors, and let downstream microservices, analytics (watsonx.data), and AI agents all consume the <em>same governed streams</em> — with replay and fan-out that MQ alone doesn't give you. Be honest about the connector trade-offs (table above): bindings mode and MQ-specific config favor the native connectors; managed + Schema Registry favors Confluent's.</p>
+    <h3>UC-C: MQ modernization / event distribution at scale</h3>
+    <p>You don't rip out MQ. You keep it as the transactional backbone, bridge it to Confluent with the MQ Source/Sink connectors, and then let downstream microservices, analytics in watsonx.data, and AI agents all consume the <em>same governed streams</em>, with the replay and fan-out that MQ on its own was never going to give you. Just be straight about the connector trade-offs from the table above: bindings mode and MQ-specific config push you toward the native connectors, while managed plus Schema Registry pushes you toward Confluent's.</p>
     <figure>
       <div class="excalidraw" id="fig9"></div>
       <figcaption><b>Figure 9.</b> MQ stays the transactional backbone; Confluent adds replay and fan-out to many independent consumers, with optional write-back via MQ Sink.</figcaption>
@@ -487,7 +490,7 @@ hr.soft{border:none;border-top:1px solid var(--border);margin:34px 0}
   <h2>Design considerations &amp; gotchas (quick reference)</h2>
   <div class="callout gotcha">
     <span class="lbl">Before you commit a design</span>
-    <p>• No Event Streams deprecation date exists — say "consolidation target," not "EOL."<br>
+    <p>• No Event Streams deprecation date exists, so say "consolidation target," not "EOL."<br>
     • Exactly-once on MQ connectors needs a dedicated state/offsets queue and a single task (<code>tasks.max=1</code>).<br>
     • Self-managed MQ connectors on s390x require CP 8.2+.<br>
     • SAP Phase 2 push depends on a certified ABAP partner add-on (ASAPIO confirmed); don't promise native push without it.<br>
@@ -497,22 +500,22 @@ hr.soft{border:none;border-top:1px solid var(--border);margin:34px 0}
   <h2 class="refs">References</h2>
   <div class="refs">
   <ol>
-    <li>IBM — <a href="https://www.ibm.com/products/confluent">IBM Confluent product</a></li>
-    <li>IBM — <a href="https://www.ibm.com/products/event-automation">IBM Event Automation</a></li>
-    <li>IBM — <a href="https://www.ibm.com/products/cloud-pak-for-integration/event-streams">Event Streams (CP4I)</a></li>
-    <li>GitHub — <a href="https://github.com/ibm-cloud-docs/EventStreams/blob/master/release-notes.md">Event Streams release notes</a></li>
-    <li>IBM — <a href="https://www.ibm.com/support/pages/ibm-event-streams-support-lifecycle-addendum">Event Streams support lifecycle addendum</a></li>
-    <li>IBM — <a href="https://www.ibm.com/products/cloud-pak-for-integration">Cloud Pak for Integration</a></li>
-    <li>IBM — <a href="https://www.ibm.com/products/webmethods-hybrid-integration">webMethods Hybrid Integration</a></li>
-    <li>IBM — <a href="https://www.ibm.com/products/app-connect">App Connect</a></li>
-    <li>IBM — <a href="https://www.ibm.com/products/streamsets">StreamSets</a> · <a href="https://www.ibm.com/products/datastage">DataStage</a> · <a href="https://www.ibm.com/products/data-replication">Data Replication</a> · <a href="https://www.ibm.com/products/databand">Databand</a></li>
-    <li>Confluent — <a href="https://www.confluent.io/product/connectors/">Connector portfolio</a></li>
-    <li>GitHub — <a href="https://github.com/ibm-messaging/kafka-connect-mq-source">IBM MQ Source (OSS)</a> · <a href="https://github.com/ibm-messaging/kafka-connect-mq-sink">IBM MQ Sink (OSS)</a></li>
-    <li>Confluent Docs — <a href="https://docs.confluent.io/cloud/current/connectors/cc-ibm-mq-sink.html">Confluent Cloud IBM MQ Sink</a></li>
-    <li>IBM Docs — <a href="https://www.ibm.com/docs/en/ibm-mq/9.4?topic=scenarios-kafka-connect">IBM MQ — Kafka Connect scenarios</a></li>
-    <li>Confluent Docs — <a href="https://docs.confluent.io/kafka-connectors/jdbc/current/source-connector/overview.html">JDBC Source connector</a></li>
-    <li>ASAPIO — <a href="https://www.asapio.com/confluent">SAP → Confluent integration</a> · Confluent Docs — <a href="https://docs.confluent.io/cloud/current/connectors/cc-http-source.html">HTTP Source</a></li>
-    <li>IBM — <a href="https://www.ibm.com/software/passportadvantage/">Passport Advantage</a> · Confluent Docs — <a href="https://docs.confluent.io/platform/current/installation/docker/image-reference.html">Docker image reference</a></li>
+    <li>IBM: <a href="https://www.ibm.com/products/confluent">IBM Confluent product</a></li>
+    <li>IBM: <a href="https://www.ibm.com/products/event-automation">IBM Event Automation</a></li>
+    <li>IBM: <a href="https://www.ibm.com/products/cloud-pak-for-integration/event-streams">Event Streams (CP4I)</a></li>
+    <li>GitHub: <a href="https://github.com/ibm-cloud-docs/EventStreams/blob/master/release-notes.md">Event Streams release notes</a></li>
+    <li>IBM: <a href="https://www.ibm.com/support/pages/ibm-event-streams-support-lifecycle-addendum">Event Streams support lifecycle addendum</a></li>
+    <li>IBM: <a href="https://www.ibm.com/products/cloud-pak-for-integration">Cloud Pak for Integration</a></li>
+    <li>IBM: <a href="https://www.ibm.com/products/webmethods-hybrid-integration">webMethods Hybrid Integration</a></li>
+    <li>IBM: <a href="https://www.ibm.com/products/app-connect">App Connect</a></li>
+    <li>IBM: <a href="https://www.ibm.com/products/streamsets">StreamSets</a> · <a href="https://www.ibm.com/products/datastage">DataStage</a> · <a href="https://www.ibm.com/products/data-replication">Data Replication</a> · <a href="https://www.ibm.com/products/databand">Databand</a></li>
+    <li>Confluent: <a href="https://www.confluent.io/product/connectors/">Connector portfolio</a></li>
+    <li>GitHub: <a href="https://github.com/ibm-messaging/kafka-connect-mq-source">IBM MQ Source (OSS)</a> · <a href="https://github.com/ibm-messaging/kafka-connect-mq-sink">IBM MQ Sink (OSS)</a></li>
+    <li>Confluent Docs: <a href="https://docs.confluent.io/cloud/current/connectors/cc-ibm-mq-sink.html">Confluent Cloud IBM MQ Sink</a></li>
+    <li>IBM Docs: <a href="https://www.ibm.com/docs/en/ibm-mq/9.4?topic=scenarios-kafka-connect">IBM MQ, Kafka Connect scenarios</a></li>
+    <li>Confluent Docs: <a href="https://docs.confluent.io/kafka-connectors/jdbc/current/source-connector/overview.html">JDBC Source connector</a></li>
+    <li>ASAPIO: <a href="https://www.asapio.com/confluent">SAP → Confluent integration</a> · Confluent Docs: <a href="https://docs.confluent.io/cloud/current/connectors/cc-http-source.html">HTTP Source</a></li>
+    <li>IBM: <a href="https://www.ibm.com/software/passportadvantage/">Passport Advantage</a> · Confluent Docs: <a href="https://docs.confluent.io/platform/current/installation/docker/image-reference.html">Docker image reference</a></li>
   </ol>
   </div>
 </section>
@@ -524,7 +527,7 @@ hr.soft{border:none;border-top:1px solid var(--border);margin:34px 0}
   </div>
 
   <div class="abstract">
-    <p><strong>The short version:</strong> IBM Z is the z/Architecture mainframe; its Linux architecture is <strong>s390x</strong> (64-bit), running z/OS, Linux on Z, or LinuxONE. The cost lever everyone cares about is the <strong>zIIP</strong> (Z Integrated Information Processor) — a specialty engine for eligible Java workloads whose capacity doesn't count toward MIPS and isn't chargeable under workload-based software maintenance. Push Confluent's Java connectors onto zIIP and you move real-time mainframe integration off the general-purpose engines you're billed on. ~70%+ of the Fortune 500 (and ~92% of the top-100 banks) still run mainframes, so this is where a lot of the money is.</p>
+    <p><strong>The short version:</strong> IBM Z is the z/Architecture mainframe, and its Linux architecture is <strong>s390x</strong> (64-bit), running z/OS, Linux on Z, or LinuxONE. The one piece of jargon you have to internalize before any of this makes sense is the <strong>zIIP</strong> (Z Integrated Information Processor). It's a specialty engine for eligible Java workloads, and the magic is that its capacity doesn't count toward MIPS and isn't chargeable under workload-based software maintenance. So when you push Confluent's Java connectors onto zIIP, you're moving real-time mainframe integration off the general-purpose engines the customer is actually billed on. That's the whole game. And before anyone dismisses the mainframe as legacy: north of 70% of the Fortune 500 and around 92% of the top-100 banks still run them, so this is where a lot of the money quietly lives.</p>
   </div>
 
   <figure>
@@ -532,27 +535,27 @@ hr.soft{border:none;border-top:1px solid var(--border);margin:34px 0}
     <figcaption><b>Figure 10.</b> Mainframe systems of record → CDC/connectors (Data Gate, IIDR, MQ Source) → Confluent Platform on LinuxONE → Cluster Linking to Confluent Cloud → watsonx.data.</figcaption>
   </figure>
 
-  <h2>Connect on z/OS — the verified specifics</h2>
-  <p>Confluent certifies Kafka Connect to run <em>on z/OS</em>, hosting the certified premium IBM MQ Source <strong>v12.1.1</strong> and Sink <strong>v2.1.2</strong>. The detail that matters for cost and security is the connection mode:</p>
+  <h2>Connect on z/OS: the verified specifics</h2>
+  <p>Here's something a lot of people don't realize: Confluent certifies Kafka Connect to run <em>on z/OS itself</em>, hosting the certified premium IBM MQ Source <strong>v12.1.1</strong> and Sink <strong>v2.1.2</strong>. Once you know that's possible, the detail that decides your cost and security posture is the connection mode, and this is the part people get wrong:</p>
   <div class="callout note">
     <span class="lbl">Run it in BINDINGS mode</span>
-    <p>On z/OS, run the MQ connectors in <strong>BINDINGS</strong> mode (JNI, in-memory, local to the MQ address space — <code>MQCNO_STANDARD_BINDINGS</code>). This avoids routing through the CHINIT address spaces that CLIENT (TCP/IP) mode requires → more secure, and far less networking + CHINIT consumption. CLIENT mode is the fallback when Connect runs off-platform.</p>
+    <p>On z/OS, run the MQ connectors in <strong>BINDINGS</strong> mode (JNI, in-memory, local to the MQ address space, via <code>MQCNO_STANDARD_BINDINGS</code>). This avoids routing through the CHINIT address spaces that CLIENT (TCP/IP) mode requires, so it's more secure and uses far less networking and CHINIT capacity. CLIENT mode is the fallback when Connect runs off-platform.</p>
   </div>
-  <p>z/OS specifics you'll hit during setup: EBCDIC <strong>IBM-1047</strong> via <code>iconv</code>; runs under USS + Bash; the Java workload is zIIP-eligible; Log4j2 charset set to IBM-1047; JCL redirects STDOUT/STDERR to USS files; certified on z/OS v2.4; needs <code>com.ibm.mq.allclient.jar</code>. Use v12.x (at-least-once); v11.x is deprecated.</p>
+  <p>And a handful of z/OS specifics that will absolutely bite you during setup if nobody warned you: it's EBCDIC <strong>IBM-1047</strong> via <code>iconv</code>, it runs under USS plus Bash, the Java workload is zIIP-eligible (the whole point), the Log4j2 charset has to be set to IBM-1047, JCL redirects STDOUT/STDERR to USS files, it's certified on z/OS v2.4, and it needs <code>com.ibm.mq.allclient.jar</code>. Use v12.x for at-least-once delivery; v11.x is deprecated, so don't start a new build on it.</p>
 
-  <h2>Value &amp; outcomes — label internal vs. public</h2>
+  <h2>Value and outcomes: label internal vs. public</h2>
   <div class="callout gotcha">
     <span class="lbl">Be disciplined about which numbers are published</span>
     <p><strong>Public</strong> (Confluent blog / MIPS whitepaper): zIIP offload reduces processing cost; the pattern vastly cuts MQ networking + CHINIT cost; named customers Alight, RBC, KeyBank. <strong>Internal pilot figures</strong> (present as such, <em>not</em> as published doc claims): ~10× cheaper / ~10× faster; ~30K msg/s at ~3KB with ~$1.2M projected savings; another engagement cut MQ MIPS by ~90%. If you put the internal numbers on a slide, label them "internal pilot," and cite the public blog for the directional claim.</p>
   </div>
 
-  <h2>Mainframe sources &amp; CDC options</h2>
-  <p>Sources: Db2 for z/OS, VSAM, IMS, CICS/COBOL, IBM MQ. The CDC choice is the real architecture decision:</p>
+  <h2>Mainframe sources and CDC options</h2>
+  <p>The sources you'll be pulling from are the usual mainframe suspects: Db2 for z/OS, VSAM, IMS, CICS/COBOL, and IBM MQ. Getting data out of them is easy to wave your hands at and hard to do well, and the CDC choice is where the real architecture decision lives. Here's how I'd weigh the options:</p>
   <ul>
-    <li><strong>IIDR (IBM Data Replication)</strong> — reads Db2 active logs; the canonical IBM path to stream z/OS Db2 → Kafka; also handles VSAM/IMS. Cases: Garanti BBVA, a Middle East bank VSAM CIF. Carries licensing cost.</li>
-    <li><strong>IBM Data Gate for Confluent</strong> — log-based CDC from Db2 z/OS to Confluent, emitting Debezium-compatible events, <strong>96% zIIP-eligible</strong>, with initial load + continuous CDC, Avro/JSON + Schema Registry + TLS. <strong>Publicly announced 2026-05-05</strong> — present as "announced May 2026, GA mid-2026" (don't over-pin the GA date).</li>
-    <li><strong>zDIH (IBM Z Digital Integration Hub)</strong> — an in-memory cache of z/OS systems-of-record that <em>also</em> publishes events to Kafka; shields production from inquiry traffic; zIIP-optimized. Case: M&amp;T Bank.</li>
-    <li><strong>CICS/COBOL pattern</strong> — CICS → CICS-MQ adapter → IBM MQ → self-managed IBM MQ Source connector on z/OS → Kafka.</li>
+    <li><strong>IIDR (IBM Data Replication):</strong> reads Db2 active logs; the canonical IBM path to stream z/OS Db2 → Kafka; also handles VSAM/IMS. Cases: Garanti BBVA, a Middle East bank VSAM CIF. Carries licensing cost.</li>
+    <li><strong>IBM Data Gate for Confluent:</strong> log-based CDC from Db2 z/OS to Confluent, emitting Debezium-compatible events, <strong>96% zIIP-eligible</strong>, with initial load + continuous CDC, Avro/JSON + Schema Registry + TLS. <strong>Publicly announced 2026-05-05</strong>; present as "announced May 2026, GA mid-2026" (don't over-pin the GA date).</li>
+    <li><strong>zDIH (IBM Z Digital Integration Hub):</strong> an in-memory cache of z/OS systems-of-record that <em>also</em> publishes events to Kafka; shields production from inquiry traffic; zIIP-optimized. Case: M&amp;T Bank.</li>
+    <li><strong>CICS/COBOL pattern:</strong> CICS → CICS-MQ adapter → IBM MQ → self-managed IBM MQ Source connector on z/OS → Kafka.</li>
     <li><strong>Third-party CDC</strong> (mention only, where IBM tooling isn't licensed): Precisely, Oracle GoldenGate, Informatica, Qlik, tcVision.</li>
   </ul>
   <div class="callout gotcha">
@@ -560,23 +563,23 @@ hr.soft{border:none;border-top:1px solid var(--border);margin:34px 0}
     <p>There is <strong>no fully-managed Confluent connector for Db2 z/OS</strong> yet. Today the real options are IIDR (licensed) or IBM Data Gate (newly announced). Don't imply a one-click managed Db2-z/OS source exists.</p>
   </div>
 
-  <h2>Confluent Platform on s390x / LinuxONE + hybrid</h2>
-  <p>IBM support states "IBM Confluent Platform for Z and LinuxONE is broadly certified to run on Linux on Z (s390x)," covering the majority of features, with multi-arch Docker images on OpenShift/Kubernetes via CFK (Confluent for Kubernetes). Deploy on LinuxONE, Linux on Z, or zCX (which runs on an IFL or zIIP).</p>
+  <h2>Confluent Platform on s390x / LinuxONE and hybrid</h2>
+  <p>You can also run Confluent itself on the box. IBM support states that "IBM Confluent Platform for Z and LinuxONE is broadly certified to run on Linux on Z (s390x)," covering the majority of features, with multi-arch Docker images on OpenShift/Kubernetes via CFK (Confluent for Kubernetes). Your deployment targets are LinuxONE, Linux on Z, or zCX (which itself runs on an IFL or zIIP).</p>
   <div class="callout note">
     <span class="lbl">Hedge on the component list</span>
-    <p>The full per-component certification list (ksqlDB / Control Center / REST Proxy / Flink) isn't individually enumerated publicly — say "core CP components," not a specific checklist, unless you've confirmed it for the customer's version.</p>
+    <p>The full per-component certification list (ksqlDB / Control Center / REST Proxy / Flink) isn't individually enumerated publicly, so say "core CP components," not a specific checklist, unless you've confirmed it for the customer's version.</p>
   </div>
-  <p><strong>Hybrid topology:</strong> run core streaming on Z/LinuxONE and use <strong>Cluster Linking</strong> to mirror topics to Confluent Cloud — byte-for-byte, offset-preserving, on-prem CP 7.0+ → Cloud. That keeps low-latency mainframe-adjacent processing on-platform while the cloud side feeds watsonx.data and elastic consumers. For consolidation economics, the Signal65/IBM LinuxONE TCO work is the citable source (e.g., 47 x86 cores → 11 IFLs).</p>
+  <p><strong>The hybrid topology is the one I'd actually push.</strong> Run core streaming on Z or LinuxONE, then use <strong>Cluster Linking</strong> to mirror topics out to Confluent Cloud, byte-for-byte and offset-preserving, from on-prem CP 7.0+ into Cloud. You get the best of both: low-latency mainframe-adjacent processing stays on-platform, while the cloud side feeds watsonx.data and all your elastic consumers. When the conversation turns to consolidation economics, the citable source is the Signal65/IBM LinuxONE TCO work (for example, 47 x86 cores collapsing to 11 IFLs).</p>
   <div class="callout gotcha">
     <span class="lbl">Don't overstate the case studies</span>
-    <p>The Fiserv LinuxONE-specific Confluent case is <strong>not</strong> citable — Fiserv's Signature modernization is on Power10, not LinuxONE. Use Signal65 for LinuxONE consolidation numbers and the Confluent zSystems blog (Alight/RBC/KeyBank) for the streaming story.</p>
+    <p>The Fiserv LinuxONE-specific Confluent case is <strong>not</strong> citable; Fiserv's Signature modernization is on Power10, not LinuxONE. Use Signal65 for LinuxONE consolidation numbers and the Confluent zSystems blog (Alight/RBC/KeyBank) for the streaming story.</p>
   </div>
 
   <h2>Use cases</h2>
 
   <div class="uc">
-    <h3><span class="star">★</span> UC-A — Mainframe MQ offload for cost + real-time access <span class="tag">flagship</span></h3>
-    <p>A CICS application puts messages on MQ on z/OS; the certified IBM MQ Source connector — running on zIIP in bindings mode — lands them on Kafka off the mainframe, where cloud apps and analytics consume them. Outcomes: the public zIIP cost-reduction story, plus (clearly labeled) internal pilots of ~30K msg/s, ~$1.2M savings, ~90% MIPS reduction; customers RBC / Alight / KeyBank.</p>
+    <h3><span class="star">★</span> UC-A: Mainframe MQ offload for cost + real-time access <span class="tag">flagship</span></h3>
+    <p>The shape is straightforward and it's the one that pays for itself fastest. A CICS application puts messages on MQ on z/OS, and the certified IBM MQ Source connector, running on zIIP in bindings mode, lands them on Kafka off the mainframe, where cloud apps and analytics pick them up. For outcomes you've got the public zIIP cost-reduction story, plus the clearly-labeled internal pilots (around 30K msg/s, roughly $1.2M savings, about 90% MIPS reduction) and named customers RBC, Alight, and KeyBank. Keep the internal numbers tagged as internal when you present them.</p>
     <figure>
       <div class="excalidraw" id="fig11"></div>
       <figcaption><b>Figure 11.</b> CICS → MQ (z/OS) → MQ Source connector (bindings, zIIP) → Kafka off-mainframe → cloud apps/analytics.</figcaption>
@@ -584,8 +587,8 @@ hr.soft{border:none;border-top:1px solid var(--border);margin:34px 0}
   </div>
 
   <div class="uc">
-    <h3><span class="star">★</span> UC-B — Db2 z/OS CDC for real-time analytics/AI <span class="tag">flagship</span></h3>
-    <p>Stream Db2 for z/OS active logs through IIDR or IBM Data Gate (Debezium-style, 96% zIIP) into Confluent, then Tableflow into watsonx.data for at-rest analytics and AI. This is the pattern that turns the mainframe system of record into a real-time feed without bolting query load onto Db2. Note the honest caveats: no fully-managed Db2-z/OS connector yet, and IIDR carries licensing cost.</p>
+    <h3><span class="star">★</span> UC-B: Db2 z/OS CDC for real-time analytics/AI <span class="tag">flagship</span></h3>
+    <p>This is the pattern that turns the mainframe system of record into a real-time feed without bolting extra query load onto Db2, which is the thing your DBAs are terrified of. You stream Db2 for z/OS active logs through IIDR or IBM Data Gate (Debezium-style, 96% zIIP) into Confluent, then Tableflow into watsonx.data for at-rest analytics and AI. Two honest caveats to say out loud: there's no fully-managed Db2-z/OS connector yet, and IIDR carries a licensing cost. Don't let either one surprise the customer later.</p>
     <figure>
       <div class="excalidraw" id="fig12"></div>
       <figcaption><b>Figure 12.</b> Db2 z/OS logs → IIDR / IBM Data Gate (96% zIIP) → Confluent → Tableflow → watsonx.data.</figcaption>
@@ -593,8 +596,8 @@ hr.soft{border:none;border-top:1px solid var(--border);margin:34px 0}
   </div>
 
   <div class="uc">
-    <h3>UC-C — Confluent Platform on LinuxONE consolidation + hybrid</h3>
-    <p>Mainframe sources → CDC → Confluent Platform running on LinuxONE (s390x, CFK on OpenShift) → Cluster Linking → Confluent Cloud → watsonx.data. You consolidate sprawling x86 streaming infrastructure onto IFLs (Signal65 TCO) while keeping a clean, offset-preserving bridge to the cloud for the AI/analytics side.</p>
+    <h3>UC-C: Confluent Platform on LinuxONE consolidation + hybrid</h3>
+    <p>The full chain reads: mainframe sources → CDC → Confluent Platform running on LinuxONE (s390x, CFK on OpenShift) → Cluster Linking → Confluent Cloud → watsonx.data. The pitch writes itself: you consolidate sprawling x86 streaming infrastructure down onto IFLs (lean on the Signal65 TCO numbers here) while keeping a clean, offset-preserving bridge to the cloud for the AI and analytics side. You're not choosing between mainframe and cloud, you're using each for what it's best at.</p>
     <figure>
       <div class="excalidraw" id="fig13"></div>
       <figcaption><b>Figure 13.</b> Hybrid: core streaming on LinuxONE, mirrored byte-for-byte to Confluent Cloud via Cluster Linking, feeding watsonx.data.</figcaption>
@@ -606,7 +609,7 @@ hr.soft{border:none;border-top:1px solid var(--border);margin:34px 0}
     <span class="lbl">Before you commit a design</span>
     <p>• Use BINDINGS mode on z/OS (zIIP-eligible, avoids CHINIT/TCP overhead); CLIENT only off-platform.<br>
     • MQ Source v12.1.1 / Sink v2.1.2; v12.x at-least-once; v11.x deprecated; EBCDIC IBM-1047, USS+Bash, z/OS v2.4.<br>
-    • No fully-managed Db2-z/OS connector — it's IIDR (licensed) or IBM Data Gate (announced May 2026).<br>
+    • No fully-managed Db2-z/OS connector; it's IIDR (licensed) or IBM Data Gate (announced May 2026).<br>
     • CP on s390x = "core components," not a confirmed full feature list; via IBM distribution + CFK.<br>
     • Cluster Linking is byte-for-byte/offset-preserving from CP 7.0+ → Cloud.<br>
     • Label internal pilot numbers as such; Fiserv LinuxONE case is not citable.</p>
@@ -615,18 +618,18 @@ hr.soft{border:none;border-top:1px solid var(--border);margin:34px 0}
   <h2 class="refs">References</h2>
   <div class="refs">
   <ol>
-    <li>Confluent Docs — <a href="https://docs.confluent.io/platform/current/connect/connect-zos.html">Connect on z/OS</a></li>
-    <li>Confluent — <a href="https://www.confluent.io/blog/modernize-mainframe-with-confluent-on-ibm-zsystems/">Modernize the mainframe with Confluent on IBM zSystems</a></li>
-    <li>Confluent — <a href="https://www.confluent.io/resources/white-paper/mainframe-mips-reduction/">Mainframe MIPS reduction (whitepaper)</a></li>
-    <li>Confluent Docs — <a href="https://docs.confluent.io/kafka-connectors/ibmmq-source/current/overview.html">IBM MQ Source (Platform)</a></li>
-    <li>IBM Docs — <a href="https://www.ibm.com/docs/en/ibm-mq/9.2.x?topic=modes-mq-classes-java-bindings-mode">MQ classes for Java — bindings mode</a></li>
-    <li>IBM — <a href="https://www.ibm.com/products/data-replication">IBM Data Replication (IIDR)</a></li>
-    <li>IBM — <a href="https://www.ibm.com/new/announcements/ibm-data-gate-for-confluent-turning-z-data-into-real-time-action">IBM Data Gate for Confluent (announcement)</a> · <a href="https://www.ibm.com/products/data-gate-for-confluent">product page</a></li>
-    <li>IBM — <a href="https://www.ibm.com/products/z-digital-integration-hub">Z Digital Integration Hub</a> · <a href="https://www.ibm.com/docs/en/zdih/2.1.x?topic=z-digital-integration-hub-overview">zDIH docs</a></li>
-    <li>IBM Support — <a href="https://www.ibm.com/support/pages/ibm-confluent-platform-z-and-linuxone-now-broadly-certified-run-linux-z-s390x-architecture">IBM Confluent Platform certified on Linux on Z (s390x)</a></li>
-    <li>Confluent Docs — <a href="https://docs.confluent.io/cloud/current/multi-cloud/cluster-linking/index.html">Cluster Linking (Cloud)</a> · <a href="https://docs.confluent.io/platform/current/multi-dc-deployments/cluster-linking/hybrid-cp.html">hybrid CP</a></li>
-    <li>Signal65 — <a href="https://signal65.com/research/workload-consolidation-on-ibm-linuxone/">Workload consolidation on IBM LinuxONE</a></li>
-    <li>Confluent — <a href="https://www.confluent.io/partner/ibm/">IBM partner page</a></li>
+    <li>Confluent Docs: <a href="https://docs.confluent.io/platform/current/connect/connect-zos.html">Connect on z/OS</a></li>
+    <li>Confluent: <a href="https://www.confluent.io/blog/modernize-mainframe-with-confluent-on-ibm-zsystems/">Modernize the mainframe with Confluent on IBM zSystems</a></li>
+    <li>Confluent: <a href="https://www.confluent.io/resources/white-paper/mainframe-mips-reduction/">Mainframe MIPS reduction (whitepaper)</a></li>
+    <li>Confluent Docs: <a href="https://docs.confluent.io/kafka-connectors/ibmmq-source/current/overview.html">IBM MQ Source (Platform)</a></li>
+    <li>IBM Docs: <a href="https://www.ibm.com/docs/en/ibm-mq/9.2.x?topic=modes-mq-classes-java-bindings-mode">MQ classes for Java, bindings mode</a></li>
+    <li>IBM: <a href="https://www.ibm.com/products/data-replication">IBM Data Replication (IIDR)</a></li>
+    <li>IBM: <a href="https://www.ibm.com/new/announcements/ibm-data-gate-for-confluent-turning-z-data-into-real-time-action">IBM Data Gate for Confluent (announcement)</a> · <a href="https://www.ibm.com/products/data-gate-for-confluent">product page</a></li>
+    <li>IBM: <a href="https://www.ibm.com/products/z-digital-integration-hub">Z Digital Integration Hub</a> · <a href="https://www.ibm.com/docs/en/zdih/2.1.x?topic=z-digital-integration-hub-overview">zDIH docs</a></li>
+    <li>IBM Support: <a href="https://www.ibm.com/support/pages/ibm-confluent-platform-z-and-linuxone-now-broadly-certified-run-linux-z-s390x-architecture">IBM Confluent Platform certified on Linux on Z (s390x)</a></li>
+    <li>Confluent Docs: <a href="https://docs.confluent.io/cloud/current/multi-cloud/cluster-linking/index.html">Cluster Linking (Cloud)</a> · <a href="https://docs.confluent.io/platform/current/multi-dc-deployments/cluster-linking/hybrid-cp.html">hybrid CP</a></li>
+    <li>Signal65: <a href="https://signal65.com/research/workload-consolidation-on-ibm-linuxone/">Workload consolidation on IBM LinuxONE</a></li>
+    <li>Confluent: <a href="https://www.confluent.io/partner/ibm/">IBM partner page</a></li>
   </ol>
   </div>
 </section>
@@ -634,9 +637,10 @@ hr.soft{border:none;border-top:1px solid var(--border);margin:34px 0}
 </main>
 
 <div class="footer">
-  Internal enablement reference for Confluent + IBM solutions engineers. Built from public IBM &amp; Confluent
-  documentation as of June 2026. Figures are schematic. Internal pilot numbers are labelled as such and are not
-  published vendor claims. Verify version pins and GA status against current docs before quoting to a customer.
+  Written for engineers, by an engineer. Everything here comes from public IBM and Confluent docs as of June 2026,
+  and the diagrams are sketches, not screenshots. Where I quote internal pilot numbers I've said so out loud, because
+  they are not published vendor claims and you'll get burned if you treat them as such. One ask before you put any of
+  this in front of a customer: re-check the version pins and GA status against the live docs. This stuff moves.
 </div>
 
 <script>
@@ -696,26 +700,29 @@ const DIAGRAMS={
 /* ===== OVERVIEW ===== */
 fig1:{w:870,h:470,seed:11,alt:'Three-layer Confluent + IBM stack with spanning governance',
  groups:[
-  {x:30,y:34,w:680,h:120,color:'blue',label:'1 · Nervous system — Confluent (sub-second, data in motion)'},
-  {x:30,y:176,w:680,h:120,color:'green',label:'2 · Data foundation — IBM watsonx.data (at rest, governed)'},
-  {x:30,y:318,w:680,h:120,color:'orange',label:'3 · Reason & act'}],
+  {x:30,y:34,w:660,h:120,color:'blue',label:'1 · Nervous system · Confluent (sub-second, data in motion)'},
+  {x:30,y:166,w:660,h:158,color:'green',label:'2 · Data foundation · IBM watsonx.data (at rest, governed)'},
+  {x:30,y:340,w:660,h:98,color:'orange',label:'3 · Reason & act'}],
  nodes:[
-  {id:'kafka',x:55,y:78,w:175,h:56,color:'blue',label:'Apache Kafka',sub:'durable event log'},
-  {id:'flink',x:255,y:78,w:160,h:56,color:'blue',label:'Apache Flink',sub:'stream processing'},
-  {id:'tf',x:440,y:78,w:250,h:56,color:'teal',label:'Connectors + Tableflow',sub:'topic → Iceberg, zero-copy'},
-  {id:'ice',x:55,y:220,w:165,h:56,color:'green',label:'Iceberg + Parquet',sub:'open table format'},
-  {id:'presto',x:245,y:220,w:150,h:56,color:'green',label:'Presto (C++/Velox)',sub:'federated SQL'},
-  {id:'spark',x:415,y:220,w:100,h:56,color:'green',label:'Spark',sub:'batch / ML'},
-  {id:'milvus',x:535,y:220,w:155,h:56,color:'pink',label:'Milvus',sub:'vectors / RAG'},
-  {id:'ai',x:55,y:362,w:215,h:56,color:'orange',label:'watsonx.ai — Granite',sub:'models, RAG'},
-  {id:'orch',x:295,y:362,w:250,h:56,color:'orange',label:'watsonx Orchestrate',sub:'agents · MCP · human-in-loop'},
-  {id:'apps',x:565,y:362,w:125,h:56,color:'gray',label:'Apps / agents'},
-  {id:'gov',x:730,y:34,w:120,h:404,color:'violet',label:'watsonx.\ngovernance',sub:'+ lineage (spanning)',fs:13}],
+  {id:'kafka',x:55,y:74,w:150,h:54,color:'blue',label:'Apache Kafka',sub:'durable event log'},
+  {id:'flink',x:230,y:74,w:150,h:54,color:'blue',label:'Apache Flink',sub:'stream processing'},
+  {id:'tf',x:405,y:74,w:240,h:54,color:'teal',label:'Connectors + Tableflow',sub:'topic → Iceberg, zero-copy'},
+  {id:'ice',x:75,y:194,w:600,h:42,color:'green',label:'Iceberg + Parquet',sub:'open table format · the shared foundation'},
+  {id:'presto',x:90,y:272,w:160,h:46,color:'green',label:'Presto (C++/Velox)',sub:'federated SQL'},
+  {id:'milvus',x:280,y:272,w:160,h:46,color:'pink',label:'Milvus',sub:'vectors / RAG'},
+  {id:'spark',x:470,y:272,w:150,h:46,color:'green',label:'Spark',sub:'batch / ML'},
+  {id:'ai',x:120,y:362,w:200,h:54,color:'orange',label:'watsonx.ai · Granite',sub:'models, RAG'},
+  {id:'orch',x:355,y:362,w:215,h:54,color:'orange',label:'watsonx Orchestrate',sub:'agents · MCP · human-in-loop'},
+  {id:'apps',x:600,y:362,w:85,h:54,color:'gray',label:'Apps /\nagents'},
+  {id:'gov',x:705,y:50,w:150,h:376,color:'violet',label:'watsonx.\ngovernance',sub:'+ lineage (spanning)',fs:13}],
  edges:[
   {from:'kafka',to:'flink'},{from:'flink',to:'tf'},
-  {from:'tf',to:'ice',label:'Tableflow'},
-  {from:'presto',to:'ai',label:'SQL / context'},
-  {from:'milvus',to:'ai',label:'vectors'},
+  {from:'tf',to:'ice',sides:['b','t'],label:'materialize',ly:-2},
+  {from:'ice',to:'presto',sides:['b','t']},
+  {from:'ice',to:'milvus',sides:['b','t']},
+  {from:'ice',to:'spark',sides:['b','t']},
+  {from:'presto',to:'ai',sides:['b','t'],label:'SQL',lx:-8},
+  {from:'milvus',to:'ai',sides:['b','t'],label:'vectors',lx:6},
   {from:'ai',to:'orch'},{from:'orch',to:'apps'}]},
 
 /* ===== WATSONX.DATA ===== */
@@ -731,7 +738,7 @@ fig2:{w:880,h:400,seed:5,alt:'Tableflow to Iceberg to Presto/Spark/Milvus with l
   {id:'spark',x:582,y:162,w:130,h:54,color:'green',label:'Spark',sub:'batch / ML'},
   {id:'milvus',x:582,y:242,w:130,h:54,color:'pink',label:'Milvus',sub:'vectors / RAG'},
   {id:'ai',x:742,y:128,w:120,h:64,color:'orange',label:'watsonx.ai +\nOrchestrate'},
-  {id:'lin',x:175,y:332,w:537,h:46,color:'violet',label:'watsonx.data intelligence — column-level lineage (OpenLineage)'}],
+  {id:'lin',x:175,y:332,w:537,h:46,color:'violet',label:'watsonx.data intelligence: column-level lineage (OpenLineage)'}],
  edges:[
   {from:'topics',to:'tf'},{from:'flink',to:'tf',label:'stream'},
   {from:'sr',to:'tf',label:'schema',dashed:true},
@@ -787,7 +794,7 @@ fig6:{w:720,h:430,seed:8,alt:'Event Automation layered on Confluent with sources
   {id:'ss',x:20,y:268,w:120,h:54,color:'orange',label:'StreamSets /\nData Integration',sub:'CDC · data drift'},
   {id:'connect',x:165,y:118,w:130,h:128,color:'teal',label:'Kafka Connect',sub:'connector runtime'},
   {id:'eem',x:335,y:42,w:310,h:54,color:'violet',label:'Event Endpoint Management',sub:'AsyncAPI catalog + gateway'},
-  {id:'kafka',x:335,y:135,w:150,h:78,color:'blue',label:'Confluent — Kafka',sub:'= IBM Confluent Platform'},
+  {id:'kafka',x:335,y:135,w:150,h:78,color:'blue',label:'Confluent · Kafka',sub:'= IBM Confluent Platform'},
   {id:'flink',x:335,y:250,w:150,h:60,color:'blue',label:'Flink /\nEvent Processing',sub:'low-code authoring'},
   {id:'cons',x:520,y:135,w:170,h:78,color:'green',label:'Consumers',sub:'apps · analytics · agents'},
   {id:'ace',x:520,y:250,w:170,h:60,color:'gray',label:'App Connect Enterprise',sub:'200+ connectors · MCP tools'}],
@@ -800,8 +807,8 @@ fig6:{w:720,h:430,seed:8,alt:'Event Automation layered on Confluent with sources
 
 fig7:{w:880,h:300,seed:12,alt:'Before and after consolidation onto IBM Confluent Platform',
  groups:[
-  {x:20,y:36,w:380,h:240,color:'gray',label:'Before — CP4I Event Automation'},
-  {x:455,y:36,w:405,h:240,color:'green',label:'After — IBM Confluent Platform'}],
+  {x:20,y:36,w:380,h:240,color:'gray',label:'Before: CP4I Event Automation'},
+  {x:455,y:36,w:405,h:240,color:'green',label:'After: IBM Confluent Platform'}],
  nodes:[
   {id:'es',x:55,y:95,w:150,h:54,color:'blue',label:'Event Streams',sub:'CP4I-embedded Kafka'},
   {id:'ep',x:55,y:175,w:150,h:54,color:'blue',label:'Event Processing'},
@@ -828,7 +835,7 @@ fig9:{w:710,h:250,seed:10,alt:'MQ modernization with replay and fan-out',
   {id:'mq',x:20,y:95,w:120,h:64,color:'gray',label:'IBM MQ backbone',sub:'transactional'},
   {id:'src',x:170,y:55,w:110,h:50,color:'teal',label:'MQ Source'},
   {id:'sink',x:170,y:150,w:110,h:50,color:'teal',label:'MQ Sink'},
-  {id:'kafka',x:310,y:90,w:150,h:78,color:'blue',label:'Confluent — Kafka',sub:'replay · fan-out'},
+  {id:'kafka',x:310,y:90,w:150,h:78,color:'blue',label:'Confluent · Kafka',sub:'replay · fan-out'},
   {id:'c1',x:500,y:40,w:170,h:46,color:'green',label:'Microservices'},
   {id:'c2',x:500,y:105,w:170,h:46,color:'green',label:'Analytics / watsonx.data'},
   {id:'c3',x:500,y:172,w:170,h:46,color:'orange',label:'AI agents'}],
@@ -840,7 +847,7 @@ fig9:{w:710,h:250,seed:10,alt:'MQ modernization with replay and fan-out',
 /* ===== IBM Z ===== */
 fig10:{w:900,h:420,seed:4,alt:'Mainframe sources via CDC to Confluent on LinuxONE and Cloud',
  groups:[
-  {x:18,y:34,w:255,h:368,color:'gray',label:'IBM Z / z/OS — system of record'},
+  {x:18,y:34,w:255,h:368,color:'gray',label:'IBM Z / z/OS · system of record'},
   {x:295,y:34,w:205,h:368,color:'orange',label:'CDC / connectors'},
   {x:525,y:34,w:200,h:368,color:'green',label:'LinuxONE / Linux on Z (s390x)'}],
  nodes:[
